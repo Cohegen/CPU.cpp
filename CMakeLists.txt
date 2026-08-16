@@ -17,11 +17,26 @@ target_link_libraries(cpu_cpp
         logic::logic
 )
 
-enable_testing()
-
 add_executable(test_instruction
     tests/test_instruction.cpp
 )
 
+target_link_libraries(test_instruction
+    PRIVATE
+        logic::logic
+)
+
 add_test(NAME test_instruction COMMAND test_instruction)
+
+add_executable(test_pc
+    tests/test_pc.cpp
+)
+
+target_link_libraries(test_pc
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_pc COMMAND test_pc)
+
 
