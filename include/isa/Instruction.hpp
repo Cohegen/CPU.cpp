@@ -3,6 +3,7 @@ Defining an Instruction class which represents a raw 32 bit instruction
 */
 
 #pragma once
+#include <cstddef>
 #include <cstdint>
 
 #include "Opcode.hpp"
@@ -22,7 +23,7 @@ namespace cpu {
           }
 
           /*
-          Determines opcode using hardware Bus slicing
+          Determines opcode from bits 31..26 using hardware Bus slicing
           */
           [[nodiscard]]
           Opcode opcode() const noexcept {
@@ -38,7 +39,7 @@ namespace cpu {
           }
 
           /*
-          Determines destination register rd using hardware Bus slicing
+          Extracts field at bits 25..22 (rd in R/I format, rs2 in S format, rs1 in B format)
           */
           [[nodiscard]]
           Register rd() const noexcept {
@@ -54,7 +55,7 @@ namespace cpu {
           }
 
           /*
-          Determines source register 1 rs1 using hardware Bus slicing
+          Extracts field at bits 21..18 (rs1 in R/I/S format, rs2 in B format)
           */
           [[nodiscard]]
           Register rs1() const noexcept {
@@ -70,7 +71,7 @@ namespace cpu {
           }
 
           /*
-          Determines source register 2 rs2 using hardware Bus slicing
+          Extracts field at bits 17..14 (rs2 in R format)
           */
           [[nodiscard]]
           Register rs2() const noexcept {
@@ -86,10 +87,10 @@ namespace cpu {
           }
 
           /*
-          Determines signed immediate using hardware Bus fan-out sign extension
+          Determines 18-bit signed immediate (bits 17..0) using hardware Bus fan-out sign extension
           */
           [[nodiscard]]
-          std::int32_t immediate_signed() const noexcept {
+          std::int32_t immediate() const noexcept {
               logic::Bus<32> inst_bus;
               inst_bus.write_value(raw_);
 
@@ -107,7 +108,13 @@ namespace cpu {
 
               return static_cast<std::int32_t>(imm_bus.read_value());
           }
+
+          [[nodiscard]]
+          std::int32_t immediate_signed() const noexcept {
+              return immediate();
+          }
+
         private:
           Word raw_;
     };
-}
+}

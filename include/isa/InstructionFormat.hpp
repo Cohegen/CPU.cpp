@@ -15,7 +15,7 @@ namespace cpu{
         R_TYPE,
         I_TYPE,
         S_TYPE,
-        B_TYPE
+        B_TYPE,
         J_TYPE,
     };
 }

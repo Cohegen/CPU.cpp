@@ -3,6 +3,7 @@ Defining our CPU registers
 */
 
 #pragma once
+#include <cstddef>
 #include <cstdint>
 
 namespace cpu {
