@@ -58,5 +58,5 @@ private:
     logic::Mux<N> mux_;
 };
 
-} // namespace cpu
+} 
 
