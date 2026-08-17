@@ -99,8 +99,13 @@ target_link_libraries(test_alu_operand_mux
 
 add_test(NAME test_alu_operand_mux COMMAND test_alu_operand_mux)
 
+add_executable(test_single_cycle_datapath
+    tests/test_single_cycle_datapath.cpp
+)
 
+target_link_libraries(test_single_cycle_datapath
+    PRIVATE
+        logic::logic
+)
 
-
-
-
+add_test(NAME test_single_cycle_datapath COMMAND test_single_cycle_datapath)
