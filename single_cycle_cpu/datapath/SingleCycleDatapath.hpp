@@ -6,16 +6,17 @@ Implementation of the single cycle processor datapath
 #include "ControlSignals.hpp"
 #include "ProgramCounter.hpp"
 #include "InstructionMemory.hpp"
-#include "isa/InstructionDecoder.hpp"
-#include <logic/sequential/memory/RegisterFile.hpp>
+#include "../../include/isa/InstructionDecoder.hpp"
 #include "ControlUnit.hpp"
 #include "ALUOperandMux.hpp"
 #include "ALUInterface.hpp"
 #include <logic/simulator/Component.hpp>
-#include <logic/signals/clock.hpp>
 #include <logic/signals/wire.hpp>
 #include <logic/signals/bus.hpp>
+#include <logic/signals/clock.hpp>
 #include <logic/combinational/adders/RippleCarryAdder.hpp>
+#include <logic/sequential/memory/RegisterFile.hpp>
+#include <cstdint>
 #include <vector>
 
 namespace cpu{
@@ -25,7 +26,7 @@ namespace cpu{
        std::size_t InstructionWidth=32,
        std::size_t RegisterAddressWidth =4,
        std::size_t InstructionMemoryAddressWidth=8
-    
+
     >
     class SingleCycleDatapath:public logic::Component{
 
@@ -37,8 +38,32 @@ namespace cpu{
              reset_(reset),
              program_counter_(clock_,reset_,pc_enable_,pc_next_,pc_),
              instruction_mem_(pc_,instruction_),
-             pc_adder_(pc_,pc_constant_one_,pc_adder_carry_in_,pc_increment_,pc_adder_carry_out_)
-             
+             pc_adder_(pc_,pc_constant_one_,pc_adder_carry_in_,pc_increment_,pc_adder_carry_out_),
+             register_file_(
+                register_clock_,
+                reset_,
+                register_write_enable_,
+                rs1_address_,
+                rs2_address_,
+                rd_address_,
+                register_write_data_,
+                rs1_data_,
+                rs2_data_
+             ),
+             alu_operand_mux_(
+                rs2_data_,
+                immediate_,
+                alu_source_immediate_,
+                alu_operand_b_
+             ),
+             alu_interface_(
+                rs1_data_,
+                alu_operand_b_,
+                control_.alu_operation,
+                alu_result_,
+                alu_zero_,
+                alu_carry_
+             )
              {
                 // Constant 1 for PC increment
              for (std::size_t i = 0; i < AddressWidth; ++i)
@@ -59,17 +84,69 @@ namespace cpu{
                         pc_enable_.write(
                          logic::LogicState::HIGH
                         );
+
+                        // Write-back is not implemented yet.
+                        register_write_enable_.write(
+                         logic::LogicState::LOW
+                        );
+                        register_write_data_.clear();
              }
 
-            void evaluate() noexcept override{
-               program_counter_.evaluate();
-               instruction_mem_.evaluate();
-               pc_adder_.evaluate();
+             void evaluate() noexcept override
+             {
+                 // 1. Generate PC + 1 from current PC.
+                 pc_adder_.evaluate();
 
-               for(std::size_t i = 0; i < AddressWidth; ++i) {
-                   pc_next_[i].write(pc_increment_[i].read());
-               }
-            }
+                 // 2. Connect PC + 1 to the next-PC input.
+                 for (std::size_t i = 0; i < AddressWidth; ++i)
+                 {
+                     pc_next_[i].write(pc_increment_[i].read());
+                 }
+
+                 // 3. Update the PC register.
+                 program_counter_.evaluate();
+
+                 // 4. Fetch instruction at the current PC.
+                 instruction_mem_.evaluate();
+
+                 //decode stage
+                 Instruction instruction_word(
+                    static_cast<std::uint32_t>(instruction_.read_value())
+                 );
+
+                 decoded_instruction_ = InstructionDecoder::decode(instruction_word);
+                 control_ = ControlUnit::generate(decoded_instruction_);
+
+                 rs1_address_.write_value( static_cast<std::size_t>(decoded_instruction_.rs1)
+                );
+
+                rs2_address_.write_value(
+                    static_cast<std::size_t>(decoded_instruction_.rs2)
+                );
+
+                rd_address_.write_value(
+                    static_cast<std::size_t>(decoded_instruction_.rd)
+                );
+
+                immediate_.write_value(
+                    static_cast<std::uint32_t>(
+                        decoded_instruction_.immediate
+                    )
+                );
+
+                alu_source_immediate_.write(
+                    control_.alu_source_immediate
+                        ? logic::LogicState::HIGH
+                        : logic::LogicState::LOW
+                );
+
+                register_write_enable_.write(logic::LogicState::LOW);
+                register_file_.evaluate();
+
+                alu_operand_mux_.evaluate();
+                alu_interface_.set_operation(control_.alu_operation);
+                alu_interface_.evaluate();
+             }
 
             void load_instructions(const std::vector<std::size_t>& instructions) noexcept {
                 instruction_mem_.load(instructions);
@@ -105,7 +182,101 @@ namespace cpu{
                 return instruction_mem_;
             }
 
-        
+            [[nodiscard]]
+            const DecodedInstruction& decoded_instruction() const noexcept {
+                return decoded_instruction_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<RegisterAddressWidth>& rs1_address() const noexcept {
+                return rs1_address_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<RegisterAddressWidth>& rs2_address() const noexcept {
+                return rs2_address_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<RegisterAddressWidth>& rd_address() const noexcept {
+                return rd_address_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<DataWidth>& immediate() const noexcept {
+                return immediate_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<DataWidth>& rs1_data() const noexcept {
+                return rs1_data_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<DataWidth>& rs2_data() const noexcept {
+                return rs2_data_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<DataWidth>& alu_operand_b() const noexcept {
+                return alu_operand_b_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<DataWidth>& alu_result() const noexcept {
+                return alu_result_;
+            }
+
+            [[nodiscard]]
+            const logic::Wire& alu_zero() const noexcept {
+                return alu_zero_;
+            }
+
+            [[nodiscard]]
+            const logic::Wire& alu_carry() const noexcept {
+                return alu_carry_;
+            }
+
+            [[nodiscard]]
+            const ControlSignals& control_signals() const noexcept {
+                return control_;
+            }
+
+            void write_register_for_test(
+                cpu::Register destination,
+                std::uint32_t value
+            ) noexcept {
+                rd_address_.write_value(
+                    static_cast<std::size_t>(destination)
+                );
+                register_write_data_.write_value(value);
+                register_write_enable_.write(logic::LogicState::HIGH);
+
+                register_file_.evaluate();
+                register_clock_.tick();
+                register_file_.evaluate();
+                register_clock_.tick();
+                register_file_.evaluate();
+
+                register_write_enable_.write(logic::LogicState::LOW);
+                register_file_.evaluate();
+            }
+
+            [[nodiscard]]
+            std::uint32_t read_register_for_test(
+                cpu::Register source
+            ) noexcept {
+                rs1_address_.write_value(
+                    static_cast<std::size_t>(source)
+                );
+                register_file_.evaluate();
+
+                return static_cast<std::uint32_t>(
+                    rs1_data_.read_value()
+                );
+            }
+
+
         private:
            //external signals
           logic::Wire& clock_;
@@ -137,6 +308,9 @@ namespace cpu{
           //register data
           logic::Bus<DataWidth> rs1_data_;
           logic::Bus<DataWidth> rs2_data_;
+          logic::Bus<DataWidth> register_write_data_;
+          logic::Wire register_write_enable_;
+          logic::Clock register_clock_;
 
           //ALU datapath
           logic::Bus<DataWidth>immediate_;
@@ -153,8 +327,11 @@ namespace cpu{
           //datapath components
           ProgramCounter<AddressWidth> program_counter_;
           InstructionMemory<AddressWidth,InstructionMemoryAddressWidth,InstructionWidth> instruction_mem_;
+          logic::RegisterFile<RegisterAddressWidth, DataWidth> register_file_;
+          ALUOperandMux<DataWidth> alu_operand_mux_;
+          ALUInterface<DataWidth> alu_interface_;
 
-          
-          
+
+
     };
-}
+}
