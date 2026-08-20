@@ -324,7 +324,65 @@ int main()
         42
     );
 
+    // LW instruction test (memory_read=true -> memory_to_register=HIGH -> WriteBackMux selects memory_read_data)
+    {
+        logic::Wire clock(logic::LogicState::LOW);
+        logic::Wire reset(logic::LogicState::LOW);
+        constexpr std::size_t offset = 1;
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_i_type(
+                cpu::Opcode::LW,
+                cpu::Register::R1,
+                cpu::Register::R2,
+                offset
+            )
+        );
+
+        datapath.write_register_for_test(cpu::Register::R2, 0); // address = 0 + 1 = 1
+        datapath.data_memory().load_rom({0x11111111, 0x99998888});
+
+        datapath.evaluate();
+
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::LW);
+        assert(datapath.control_signals().memory_read == true);
+        assert(datapath.memory_to_register().read() == logic::LogicState::HIGH);
+        assert(datapath.alu_result().read_value() == 1);
+        assert(datapath.memory_read_data().read_value() == 0x99998888);
+        assert(datapath.register_write_data().read_value() == 0x99998888);
+        std::cout << "[PASS] LW instruction sets memory_to_register=HIGH and WriteBackMux selects memory_read_data\n";
+    }
+
+    // ALU operation test (ADD instruction -> memory_read=false -> memory_to_register=LOW -> WriteBackMux selects alu_result)
+    {
+        logic::Wire clock(logic::LogicState::LOW);
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_r_type(
+                cpu::Opcode::ADD,
+                cpu::Register::R1,
+                cpu::Register::R2,
+                cpu::Register::R3
+            )
+        );
+
+        datapath.write_register_for_test(cpu::Register::R2, 100);
+        datapath.write_register_for_test(cpu::Register::R3, 50);
+
+        datapath.evaluate();
+
+        assert(datapath.control_signals().memory_read == false);
+        assert(datapath.memory_to_register().read() == logic::LogicState::LOW);
+        assert(datapath.alu_result().read_value() == 150);
+        assert(datapath.register_write_data().read_value() == 150);
+        std::cout << "[PASS] ADD instruction sets memory_to_register=LOW and WriteBackMux selects alu_result\n";
+    }
+
     std::cout << "[SKIP] R0 hardwired-zero test: current RegisterFile permits writes to R0\n";
     std::cout << "[PASS] SingleCycleDatapath register read tests successful!\n";
     return 0;
 }
+

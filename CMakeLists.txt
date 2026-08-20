@@ -71,7 +71,6 @@ target_link_libraries(test_pc_imem_connection
         logic::logic
 )
 
-
 add_executable(test_control_unit
     tests/test_control_unit.cpp
 )
@@ -112,3 +111,26 @@ target_link_libraries(test_single_cycle_datapath
 )
 
 add_test(NAME test_single_cycle_datapath COMMAND test_single_cycle_datapath)
+
+add_executable(test_data_memory
+    tests/test_data_memory.cpp
+)
+
+target_link_libraries(test_data_memory
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_data_memory COMMAND test_data_memory)
+
+add_executable(test_writeback_mux
+    tests/test_writeback_mux.cpp
+)
+
+target_link_libraries(test_writeback_mux
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_writeback_mux COMMAND test_writeback_mux)
+

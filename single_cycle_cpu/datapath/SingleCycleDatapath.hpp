@@ -10,12 +10,16 @@ Implementation of the single cycle processor datapath
 #include "ControlUnit.hpp"
 #include "ALUOperandMux.hpp"
 #include "ALUInterface.hpp"
+#include "DataMemory.hpp"
+#include "WriteBackMux.hpp"
 #include <logic/simulator/Component.hpp>
+
 #include <logic/signals/wire.hpp>
 #include <logic/signals/bus.hpp>
 #include <logic/signals/clock.hpp>
 #include <logic/combinational/adders/RippleCarryAdder.hpp>
 #include <logic/sequential/memory/RegisterFile.hpp>
+#include <logic/sequential/memory/memory.hpp>
 #include <cstdint>
 #include <vector>
 
@@ -25,10 +29,12 @@ namespace cpu{
        std::size_t DataWidth = 32,
        std::size_t InstructionWidth=32,
        std::size_t RegisterAddressWidth =4,
-       std::size_t InstructionMemoryAddressWidth=8
+       std::size_t InstructionMemoryAddressWidth=8,
+       std::size_t DataMemoryAddressWidth=8
 
     >
     class SingleCycleDatapath:public logic::Component{
+
 
         public:
           SingleCycleDatapath(
@@ -63,6 +69,22 @@ namespace cpu{
                 alu_result_,
                 alu_zero_,
                 alu_carry_
+             ),
+             data_mem_(
+                memory_clock_,
+                reset_,
+                memory_read_enable_,
+                memory_write_enable_,
+                alu_result_,
+                rs2_data_,
+                memory_read_data_
+             ),
+
+             writeback_mux_(
+                alu_result_,
+                memory_read_data_,
+                memory_to_register_,
+                register_write_data_
              )
              {
                 // Constant 1 for PC increment
@@ -84,12 +106,6 @@ namespace cpu{
                         pc_enable_.write(
                          logic::LogicState::HIGH
                         );
-
-                        // Write-back is not implemented yet.
-                        register_write_enable_.write(
-                         logic::LogicState::LOW
-                        );
-                        register_write_data_.clear();
              }
 
              void evaluate() noexcept override
@@ -140,13 +156,40 @@ namespace cpu{
                         : logic::LogicState::LOW
                 );
 
-                register_write_enable_.write(logic::LogicState::LOW);
+                register_write_enable_.write(
+                    control_.register_write
+                        ? logic::LogicState::HIGH
+                        : logic::LogicState::LOW
+                );
+
+                memory_read_enable_.write(
+                    control_.memory_read
+                        ? logic::LogicState::HIGH
+                        : logic::LogicState::LOW
+                );
+
+                memory_write_enable_.write(
+                    control_.memory_write
+                        ? logic::LogicState::HIGH
+                        : logic::LogicState::LOW
+                );
+
+                memory_to_register_.write(
+                    control_.memory_read
+                        ? logic::LogicState::HIGH
+                        : logic::LogicState::LOW
+                );
+
                 register_file_.evaluate();
 
                 alu_operand_mux_.evaluate();
                 alu_interface_.set_operation(control_.alu_operation);
                 alu_interface_.evaluate();
+
+                data_mem_.evaluate();
+                writeback_mux_.evaluate();
              }
+
 
             void load_instructions(const std::vector<std::size_t>& instructions) noexcept {
                 instruction_mem_.load(instructions);
@@ -236,6 +279,32 @@ namespace cpu{
             const logic::Wire& alu_carry() const noexcept {
                 return alu_carry_;
             }
+
+            [[nodiscard]]
+            const logic::Bus<DataWidth>& memory_read_data() const noexcept {
+                return memory_read_data_;
+            }
+
+            [[nodiscard]]
+            const logic::Bus<DataWidth>& register_write_data() const noexcept {
+                return register_write_data_;
+            }
+
+            [[nodiscard]]
+            const logic::Wire& memory_to_register() const noexcept {
+                return memory_to_register_;
+            }
+
+            [[nodiscard]]
+            DataMemory<DataMemoryAddressWidth, DataWidth>& data_memory() noexcept {
+                return data_mem_;
+            }
+
+            [[nodiscard]]
+            const DataMemory<DataMemoryAddressWidth, DataWidth>& data_memory() const noexcept {
+                return data_mem_;
+            }
+
 
             [[nodiscard]]
             const ControlSignals& control_signals() const noexcept {
@@ -331,7 +400,26 @@ namespace cpu{
           ALUOperandMux<DataWidth> alu_operand_mux_;
           ALUInterface<DataWidth> alu_interface_;
 
+          //Memory and Writeback control/interconnect signals
+          logic::Clock memory_clock_;
+          logic::Wire memory_read_enable_;
+          logic::Wire memory_write_enable_;
+          logic::Wire memory_to_register_;
+          logic::Bus<DataWidth> memory_read_data_;
 
-
-    };
+          DataMemory<DataMemoryAddressWidth, DataWidth> data_mem_;
+          WriteBackMux<DataWidth> writeback_mux_;
+     };
 }
+
+
+
+
+
+
+
+
+
+
+
+
