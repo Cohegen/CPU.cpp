@@ -38,15 +38,15 @@ namespace cpu{
 
         public:
           SingleCycleDatapath(
-             logic::Wire& clock,
+             logic::Clock& clock,
              logic::Wire& reset
           ): clock_(clock),
              reset_(reset),
-             program_counter_(clock_,reset_,pc_enable_,pc_next_,pc_),
+             program_counter_(clock_signal_,reset_,pc_enable_,pc_next_,pc_),
              instruction_mem_(pc_,instruction_),
              pc_adder_(pc_,pc_constant_one_,pc_adder_carry_in_,pc_increment_,pc_adder_carry_out_),
              register_file_(
-                register_clock_,
+                clock_,
                 reset_,
                 register_write_enable_,
                 rs1_address_,
@@ -71,11 +71,11 @@ namespace cpu{
                 alu_carry_
              ),
              data_mem_(
-                memory_clock_,
+                clock_,
                 reset_,
                 memory_read_enable_,
                 memory_write_enable_,
-                alu_result_,
+                data_memory_address_,
                 rs2_data_,
                 memory_read_data_
              ),
@@ -110,19 +110,9 @@ namespace cpu{
 
              void evaluate() noexcept override
              {
-                 // 1. Generate PC + 1 from current PC.
-                 pc_adder_.evaluate();
+                clock_signal_.write(clock_.state());
 
-                 // 2. Connect PC + 1 to the next-PC input.
-                 for (std::size_t i = 0; i < AddressWidth; ++i)
-                 {
-                     pc_next_[i].write(pc_increment_[i].read());
-                 }
-
-                 // 3. Update the PC register.
-                 program_counter_.evaluate();
-
-                 // 4. Fetch instruction at the current PC.
+                 // Fetch instruction at the current PC before updating PC.
                  instruction_mem_.evaluate();
 
                  //decode stage
@@ -144,20 +134,16 @@ namespace cpu{
                     static_cast<std::size_t>(decoded_instruction_.rd)
                 );
 
+                //connecting immediate
                 immediate_.write_value(
                     static_cast<std::uint32_t>(
                         decoded_instruction_.immediate
                     )
                 );
 
+                //driving control signals
                 alu_source_immediate_.write(
                     control_.alu_source_immediate
-                        ? logic::LogicState::HIGH
-                        : logic::LogicState::LOW
-                );
-
-                register_write_enable_.write(
-                    control_.register_write
                         ? logic::LogicState::HIGH
                         : logic::LogicState::LOW
                 );
@@ -179,15 +165,44 @@ namespace cpu{
                         ? logic::LogicState::HIGH
                         : logic::LogicState::LOW
                 );
-
+                //reading register operands
+                register_write_enable_.write(logic::LogicState::LOW);
                 register_file_.evaluate();
 
+                //selecting ALU operand B
                 alu_operand_mux_.evaluate();
+
+                //executing ALU operation
                 alu_interface_.set_operation(control_.alu_operation);
                 alu_interface_.evaluate();
 
+                for (std::size_t i = 0; i < DataMemoryAddressWidth; ++i)
+                {
+                    data_memory_address_[i].write(alu_result_[i].read());
+                }
+
+                //performing memory operation
                 data_mem_.evaluate();
+
+                //selecting value to write back
                 writeback_mux_.evaluate();
+
+                register_write_enable_.write(
+                    control_.register_write
+                        ? logic::LogicState::HIGH
+                        : logic::LogicState::LOW
+                );
+                register_file_.evaluate();
+
+                // Generate PC + 1 from the current PC.
+                pc_adder_.evaluate();
+
+                for (std::size_t i = 0; i < AddressWidth; ++i)
+                {
+                    pc_next_[i].write(pc_increment_[i].read());
+                }
+
+                program_counter_.evaluate();
              }
 
 
@@ -322,9 +337,9 @@ namespace cpu{
                 register_write_enable_.write(logic::LogicState::HIGH);
 
                 register_file_.evaluate();
-                register_clock_.tick();
+                clock_.tick();
                 register_file_.evaluate();
-                register_clock_.tick();
+                clock_.tick();
                 register_file_.evaluate();
 
                 register_write_enable_.write(logic::LogicState::LOW);
@@ -348,9 +363,10 @@ namespace cpu{
 
         private:
            //external signals
-          logic::Wire& clock_;
+          logic::Clock& clock_;
           logic::Wire& reset_;
           logic::Wire pc_enable_;
+          logic::Wire clock_signal_;
           logic::Bus<AddressWidth>pc_next_;
 
           //instruction path
@@ -379,7 +395,6 @@ namespace cpu{
           logic::Bus<DataWidth> rs2_data_;
           logic::Bus<DataWidth> register_write_data_;
           logic::Wire register_write_enable_;
-          logic::Clock register_clock_;
 
           //ALU datapath
           logic::Bus<DataWidth>immediate_;
@@ -401,10 +416,10 @@ namespace cpu{
           ALUInterface<DataWidth> alu_interface_;
 
           //Memory and Writeback control/interconnect signals
-          logic::Clock memory_clock_;
           logic::Wire memory_read_enable_;
           logic::Wire memory_write_enable_;
           logic::Wire memory_to_register_;
+          logic::Bus<DataMemoryAddressWidth> data_memory_address_;
           logic::Bus<DataWidth> memory_read_data_;
 
           DataMemory<DataMemoryAddressWidth, DataWidth> data_mem_;

@@ -1,4 +1,5 @@
 #include "../single_cycle_cpu/datapath/SingleCycleDatapath.hpp"
+#include <logic/signals/clock.hpp>
 #include <logic/signals/wire.hpp>
 #include <iostream>
 #include <cassert>
@@ -35,8 +36,34 @@ std::uint32_t encode_i_type(
            (immediate & 0x3FFFFU);
 }
 
+std::uint32_t encode_s_type(
+    cpu::Opcode opcode,
+    cpu::Register rs2,
+    cpu::Register rs1,
+    std::uint32_t immediate
+)
+{
+    return (static_cast<std::uint32_t>(opcode) << 26) |
+           (static_cast<std::uint32_t>(rs2) << 22) |
+           (static_cast<std::uint32_t>(rs1) << 18) |
+           (immediate & 0x3FFFFU);
+}
+
+std::uint32_t encode_b_type(
+    cpu::Opcode opcode,
+    cpu::Register rs1,
+    cpu::Register rs2,
+    std::uint32_t immediate
+)
+{
+    return (static_cast<std::uint32_t>(opcode) << 26) |
+           (static_cast<std::uint32_t>(rs1) << 22) |
+           (static_cast<std::uint32_t>(rs2) << 18) |
+           (immediate & 0x3FFFFU);
+}
+
 Datapath make_datapath(
-    logic::Wire& clock,
+    logic::Clock& clock,
     logic::Wire& reset,
     std::uint32_t instruction
 )
@@ -44,6 +71,18 @@ Datapath make_datapath(
     Datapath datapath(clock, reset);
     datapath.load_instructions({instruction});
     return datapath;
+}
+
+void execute_current_instruction(
+    Datapath& datapath,
+    logic::Clock& clock
+)
+{
+    datapath.evaluate();
+    clock.tick();
+    datapath.evaluate();
+    clock.tick();
+    datapath.evaluate();
 }
 
 void assert_register_unchanged(
@@ -63,7 +102,7 @@ void run_r_type_alu_test(
     std::uint32_t expected_result
 )
 {
-    logic::Wire clock(logic::LogicState::LOW);
+    logic::Clock clock;
     logic::Wire reset(logic::LogicState::LOW);
     auto datapath = make_datapath(
         clock,
@@ -106,7 +145,7 @@ void run_i_type_alu_test(
     std::uint32_t expected_result
 )
 {
-    logic::Wire clock(logic::LogicState::LOW);
+    logic::Clock clock;
     logic::Wire reset(logic::LogicState::LOW);
     auto datapath = make_datapath(
         clock,
@@ -144,7 +183,297 @@ int main()
     std::cout << "--- Testing SingleCycleDatapath Register Read Path ---\n";
 
     {
-        logic::Wire clock(logic::LogicState::LOW);
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_i_type(cpu::Opcode::NOP, cpu::Register::R0, cpu::Register::R0, 0)
+        );
+
+        datapath.evaluate();
+        const auto pc0 = datapath.pc().read_value();
+
+        clock.tick();
+        datapath.evaluate();
+        const auto pc1 = datapath.pc().read_value();
+
+        clock.tick();
+        datapath.evaluate();
+        const auto pc_after_falling_half_cycle = datapath.pc().read_value();
+
+        clock.tick();
+        datapath.evaluate();
+        const auto pc2 = datapath.pc().read_value();
+
+        assert(pc1 == pc0 + 1);
+        assert(pc_after_falling_half_cycle == pc1);
+        assert(pc2 == pc1 + 1);
+        std::cout << "[PASS] PC increments on rising clock evaluations and holds on falling half-cycles\n";
+    }
+
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_i_type(cpu::Opcode::NOP, cpu::Register::R0, cpu::Register::R0, 0)
+        );
+
+        datapath.write_register_for_test(cpu::Register::R1, 42);
+        assert(datapath.read_register_for_test(cpu::Register::R1) == 42);
+
+        datapath.write_register_for_test(cpu::Register::R2, 100);
+        assert(datapath.read_register_for_test(cpu::Register::R1) == 42);
+        assert(datapath.read_register_for_test(cpu::Register::R2) == 100);
+        std::cout << "[PASS] Register-file test helpers write and read independent registers\n";
+    }
+
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_r_type(
+                cpu::Opcode::ADD,
+                cpu::Register::R3,
+                cpu::Register::R1,
+                cpu::Register::R2
+            )
+        );
+
+        datapath.write_register_for_test(cpu::Register::R1, 10);
+        datapath.write_register_for_test(cpu::Register::R2, 20);
+        datapath.evaluate();
+
+        assert(datapath.rs1_data().read_value() == 10);
+        assert(datapath.rs2_data().read_value() == 20);
+        std::cout << "[PASS] Register file dual-read ports drive rs1_data and rs2_data independently\n";
+    }
+
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        const std::uint32_t add_r3_r1_r2 = encode_r_type(
+            cpu::Opcode::ADD,
+            cpu::Register::R3,
+            cpu::Register::R1,
+            cpu::Register::R2
+        );
+
+        Datapath datapath(clock, reset);
+        datapath.load_instructions({add_r3_r1_r2});
+
+        datapath.write_register_for_test(cpu::Register::R1, 10);
+        datapath.write_register_for_test(cpu::Register::R2, 20);
+
+        // Execute ADD R3, R1, R2 at PC=0 and inspect the full combinational path.
+        datapath.evaluate();
+
+        assert(datapath.instruction().read_value() == add_r3_r1_r2);
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::ADD);
+        assert(datapath.decoded_instruction().rd == cpu::Register::R3);
+        assert(datapath.decoded_instruction().rs1 == cpu::Register::R1);
+        assert(datapath.decoded_instruction().rs2 == cpu::Register::R2);
+
+        assert(datapath.rs1_data().read_value() == 10);
+        assert(datapath.rs2_data().read_value() == 20);
+        assert(datapath.alu_operand_b().read_value() == 20);
+        assert(datapath.alu_result().read_value() == 30);
+        assert(datapath.register_write_data().read_value() == 30);
+
+        assert(datapath.control_signals().register_write == true);
+        assert(datapath.control_signals().alu_source_immediate == false);
+        assert(datapath.control_signals().memory_read == false);
+        assert(datapath.control_signals().memory_write == false);
+        assert(datapath.control_signals().alu_operation == cpu::ALUOperation::ADD);
+
+        // Latch the result into R3 through the register-file clock edge.
+        clock.tick();
+        datapath.evaluate();
+        clock.tick();
+        datapath.evaluate();
+
+        assert(datapath.read_register_for_test(cpu::Register::R3) == 30);
+        std::cout << "[PASS] ADD R3, R1, R2 drives decode, register file, ALU operand mux, ALU, writeback mux, and register writeback\n";
+    }
+
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        const std::uint32_t addi_r2_r1_5 = encode_i_type(
+            cpu::Opcode::ADDI,
+            cpu::Register::R2,
+            cpu::Register::R1,
+            5
+        );
+
+        Datapath datapath(clock, reset);
+        datapath.load_instructions({addi_r2_r1_5});
+
+        datapath.write_register_for_test(cpu::Register::R1, 10);
+
+        // Execute ADDI R2, R1, 5 at PC=0 and inspect the immediate operand path.
+        datapath.evaluate();
+
+        assert(datapath.instruction().read_value() == addi_r2_r1_5);
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::ADDI);
+        assert(datapath.decoded_instruction().rd == cpu::Register::R2);
+        assert(datapath.decoded_instruction().rs1 == cpu::Register::R1);
+
+        assert(datapath.rs1_data().read_value() == 10);
+        assert(datapath.immediate().read_value() == 5);
+        assert(datapath.alu_operand_b().read_value() == 5);
+        assert(datapath.alu_result().read_value() == 15);
+        assert(datapath.register_write_data().read_value() == 15);
+
+        assert(datapath.control_signals().alu_source_immediate == true);
+        assert(datapath.control_signals().register_write == true);
+        assert(datapath.control_signals().memory_read == false);
+        assert(datapath.control_signals().memory_write == false);
+        assert(datapath.control_signals().alu_operation == cpu::ALUOperation::ADD);
+
+        // Latch the result into R2 through the register-file clock edge.
+        clock.tick();
+        datapath.evaluate();
+        clock.tick();
+        datapath.evaluate();
+
+        assert(datapath.read_register_for_test(cpu::Register::R2) == 15);
+        std::cout << "[PASS] ADDI R2, R1, 5 selects immediate through ALUOperandMux and writes back to R2\n";
+    }
+
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        const std::uint32_t sw_r2_0_r1 = encode_s_type(
+            cpu::Opcode::SW,
+            cpu::Register::R2,
+            cpu::Register::R1,
+            0
+        );
+        const std::uint32_t lw_r3_0_r1 = encode_i_type(
+            cpu::Opcode::LW,
+            cpu::Register::R3,
+            cpu::Register::R1,
+            0
+        );
+
+        Datapath datapath(clock, reset);
+        datapath.load_instructions({sw_r2_0_r1, lw_r3_0_r1});
+
+        // DataMemory maps MSB=1 addresses to RAM; stores only persist there.
+        // Use 0x80 so SW actually writes through Logic.cpp Memory -> RAM.
+        constexpr std::uint32_t base_address = 0x80;
+
+        datapath.write_register_for_test(cpu::Register::R1, base_address);
+        datapath.write_register_for_test(cpu::Register::R2, 42);
+
+        // --- SW R2, 0(R1): address = R1 + 0, store R2 into data memory ---
+        datapath.evaluate();
+
+        assert(datapath.instruction().read_value() == sw_r2_0_r1);
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::SW);
+        assert(datapath.decoded_instruction().rs1 == cpu::Register::R1);
+        assert(datapath.decoded_instruction().rs2 == cpu::Register::R2);
+        assert(datapath.rs1_data().read_value() == base_address);
+        assert(datapath.immediate().read_value() == 0);
+        assert(datapath.alu_result().read_value() == base_address);
+        assert(datapath.rs2_data().read_value() == 42);
+        assert(datapath.control_signals().memory_write == true);
+        assert(datapath.control_signals().memory_read == false);
+        assert(datapath.control_signals().register_write == false);
+        assert(datapath.control_signals().alu_source_immediate == true);
+
+        clock.tick();
+        datapath.evaluate();
+        clock.tick();
+        datapath.evaluate();
+
+        // --- LW R3, 0(R1): load from the address SW just wrote ---
+        datapath.evaluate();
+
+        assert(datapath.instruction().read_value() == lw_r3_0_r1);
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::LW);
+        assert(datapath.decoded_instruction().rd == cpu::Register::R3);
+        assert(datapath.decoded_instruction().rs1 == cpu::Register::R1);
+        assert(datapath.rs1_data().read_value() == base_address);
+        assert(datapath.immediate().read_value() == 0);
+        assert(datapath.alu_result().read_value() == base_address);
+        assert(datapath.memory_read_data().read_value() == 42);
+        assert(datapath.register_write_data().read_value() == 42);
+        assert(datapath.control_signals().memory_read == true);
+        assert(datapath.control_signals().memory_write == false);
+        assert(datapath.control_signals().register_write == true);
+        assert(datapath.control_signals().alu_source_immediate == true);
+        assert(datapath.memory_to_register().read() == logic::LogicState::HIGH);
+
+        clock.tick();
+        datapath.evaluate();
+        clock.tick();
+        datapath.evaluate();
+
+        assert(datapath.read_register_for_test(cpu::Register::R3) == 42);
+        std::cout << "[PASS] SW then LW stores 42 to RAM through DataMemory->Memory->RAM and loads it back into R3\n";
+    }
+
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_i_type(cpu::Opcode::NOP, cpu::Register::R0, cpu::Register::R0, 0)
+        );
+
+        datapath.write_register_for_test(cpu::Register::R1, 123);
+        assert(datapath.read_register_for_test(cpu::Register::R1) == 123);
+
+        reset.write(logic::LogicState::HIGH);
+        datapath.evaluate();
+        clock.tick();
+        datapath.evaluate();
+        reset.write(logic::LogicState::LOW);
+        clock.tick();
+        datapath.evaluate();
+
+        assert(datapath.read_register_for_test(cpu::Register::R1) == 0);
+        assert(datapath.pc().read_value() == 0);
+        std::cout << "[PASS] Reset clears register file state and PC on the active clock edge\n";
+    }
+
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        const std::uint32_t instruction0 =
+            encode_i_type(cpu::Opcode::ADDI, cpu::Register::R1, cpu::Register::R0, 1);
+        const std::uint32_t instruction1 =
+            encode_i_type(cpu::Opcode::ADDI, cpu::Register::R2, cpu::Register::R0, 2);
+        const std::uint32_t instruction2 =
+            encode_r_type(cpu::Opcode::ADD, cpu::Register::R3, cpu::Register::R1, cpu::Register::R2);
+
+        Datapath datapath(clock, reset);
+        datapath.load_instructions({instruction0, instruction1, instruction2});
+
+        datapath.evaluate();
+        assert(datapath.pc().read_value() == 0);
+        assert(datapath.instruction().read_value() == instruction0);
+
+        execute_current_instruction(datapath, clock);
+        assert(datapath.pc().read_value() == 1);
+        assert(datapath.instruction().read_value() == instruction1);
+
+        execute_current_instruction(datapath, clock);
+        assert(datapath.pc().read_value() == 2);
+        assert(datapath.instruction().read_value() == instruction2);
+
+        std::cout << "[PASS] Instruction fetch observes PC 0, 1, and 2 across full clock cycles\n";
+    }
+
+    {
+        logic::Clock clock;
         logic::Wire reset(logic::LogicState::LOW);
         auto datapath = make_datapath(
             clock,
@@ -180,7 +509,7 @@ int main()
     }
 
     {
-        logic::Wire clock(logic::LogicState::LOW);
+        logic::Clock clock;
         logic::Wire reset(logic::LogicState::LOW);
         auto datapath = make_datapath(
             clock,
@@ -204,7 +533,7 @@ int main()
     }
 
     {
-        logic::Wire clock(logic::LogicState::LOW);
+        logic::Clock clock;
         logic::Wire reset(logic::LogicState::LOW);
         auto datapath = make_datapath(
             clock,
@@ -227,7 +556,7 @@ int main()
     }
 
     {
-        logic::Wire clock(logic::LogicState::LOW);
+        logic::Clock clock;
         logic::Wire reset(logic::LogicState::LOW);
         constexpr std::uint32_t expected_immediate = 0x12345;
         auto datapath = make_datapath(
@@ -326,7 +655,7 @@ int main()
 
     // LW instruction test (memory_read=true -> memory_to_register=HIGH -> WriteBackMux selects memory_read_data)
     {
-        logic::Wire clock(logic::LogicState::LOW);
+        logic::Clock clock;
         logic::Wire reset(logic::LogicState::LOW);
         constexpr std::size_t offset = 1;
         auto datapath = make_datapath(
@@ -356,7 +685,7 @@ int main()
 
     // ALU operation test (ADD instruction -> memory_read=false -> memory_to_register=LOW -> WriteBackMux selects alu_result)
     {
-        logic::Wire clock(logic::LogicState::LOW);
+        logic::Clock clock;
         logic::Wire reset(logic::LogicState::LOW);
         auto datapath = make_datapath(
             clock,
@@ -381,8 +710,69 @@ int main()
         std::cout << "[PASS] ADD instruction sets memory_to_register=LOW and WriteBackMux selects alu_result\n";
     }
 
+    // Branch condition test: BEQ R1, R2, +offset (R1 = 10, R2 = 10)
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_b_type(
+                cpu::Opcode::BEQ,
+                cpu::Register::R1,
+                cpu::Register::R2,
+                5
+            )
+        );
+
+        datapath.write_register_for_test(cpu::Register::R1, 10);
+        datapath.write_register_for_test(cpu::Register::R2, 10);
+
+        datapath.evaluate();
+
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::BEQ);
+        assert(datapath.control_signals().branch == true);
+        assert(datapath.control_signals().alu_operation == cpu::ALUOperation::SUB);
+        assert(datapath.rs1_data().read_value() == 10);
+        assert(datapath.rs2_data().read_value() == 10);
+        assert(datapath.alu_result().read_value() == 0);
+        assert(datapath.alu_zero().read() == logic::LogicState::HIGH);
+
+        std::cout << "[PASS] BEQ instruction compares R1(10) == R2(10), ALU result = 0, alu_zero = HIGH\n";
+    }
+
+    // Branch condition test: BEQ R1, R2, +offset (R1 = 10, R2 = 5)
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_b_type(
+                cpu::Opcode::BEQ,
+                cpu::Register::R1,
+                cpu::Register::R2,
+                5
+            )
+        );
+
+        datapath.write_register_for_test(cpu::Register::R1, 10);
+        datapath.write_register_for_test(cpu::Register::R2, 5);
+
+        datapath.evaluate();
+
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::BEQ);
+        assert(datapath.control_signals().branch == true);
+        assert(datapath.control_signals().alu_operation == cpu::ALUOperation::SUB);
+        assert(datapath.rs1_data().read_value() == 10);
+        assert(datapath.rs2_data().read_value() == 5);
+        assert(datapath.alu_result().read_value() != 0);
+        assert(datapath.alu_zero().read() == logic::LogicState::LOW);
+
+        std::cout << "[PASS] BEQ instruction compares R1(10) != R2(5), ALU result != 0, alu_zero = LOW\n";
+    }
+
     std::cout << "[SKIP] R0 hardwired-zero test: current RegisterFile permits writes to R0\n";
     std::cout << "[PASS] SingleCycleDatapath register read tests successful!\n";
     return 0;
 }
-
