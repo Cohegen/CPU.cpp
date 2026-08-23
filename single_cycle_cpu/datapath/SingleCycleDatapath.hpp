@@ -85,6 +85,19 @@ namespace cpu{
                 memory_read_data_,
                 memory_to_register_,
                 register_write_data_
+             ),
+             branch_adder_(
+                pc_,
+                branch_offset_,
+                branch_adder_carry_in_,
+                branch_target_,
+                branch_adder_carry_out_
+             ),
+             pc_next_mux_(
+                pc_increment_,
+                branch_target_,
+                branch_taken_,
+                pc_next_
              )
              {
                 // Constant 1 for PC increment
@@ -106,10 +119,22 @@ namespace cpu{
                         pc_enable_.write(
                          logic::LogicState::HIGH
                         );
+
+                   //setting signal of branch adder carry in
+                   branch_adder_carry_in_.write(
+                          logic::LogicState::LOW
+                   );
+
+                   for(std::size_t i=0;i<AddressWidth;++i){
+                     branch_offset_[i].write(
+                         immediate_[i].read()
+                     );
+                   }
              }
 
              void evaluate() noexcept override
              {
+                //propagating external clock
                 clock_signal_.write(clock_.state());
 
                  // Fetch instruction at the current PC before updating PC.
@@ -121,8 +146,16 @@ namespace cpu{
                  );
 
                  decoded_instruction_ = InstructionDecoder::decode(instruction_word);
-                 control_ = ControlUnit::generate(decoded_instruction_);
+                  control_ = ControlUnit::generate(decoded_instruction_);
 
+                  //disable PC increment when HALT is executed
+                  pc_enable_.write(
+                      control_.halt
+                          ? logic::LogicState::LOW
+                          : logic::LogicState::HIGH
+                  );
+
+                  //driving decoded instruction signals
                  rs1_address_.write_value( static_cast<std::size_t>(decoded_instruction_.rs1)
                 );
 
@@ -176,6 +209,7 @@ namespace cpu{
                 alu_interface_.set_operation(control_.alu_operation);
                 alu_interface_.evaluate();
 
+                //data memory address
                 for (std::size_t i = 0; i < DataMemoryAddressWidth; ++i)
                 {
                     data_memory_address_[i].write(alu_result_[i].read());
@@ -187,6 +221,7 @@ namespace cpu{
                 //selecting value to write back
                 writeback_mux_.evaluate();
 
+                //register file write
                 register_write_enable_.write(
                     control_.register_write
                         ? logic::LogicState::HIGH
@@ -194,15 +229,40 @@ namespace cpu{
                 );
                 register_file_.evaluate();
 
+                //generating branch target
+                for(std::size_t i=0;i<AddressWidth;++i){
+                    branch_offset_[i].write(
+                        immediate_[i].read()
+                    );
+                }
+                branch_adder_.evaluate();
+
+                  //determining branch or jump condition
+                  bool next_pc_select = false;
+
+                  if(control_.branch){
+                      if(decoded_instruction_.opcode == Opcode::BEQ){
+                          next_pc_select = alu_zero_.read() == logic::LogicState::HIGH;
+                      }else if(decoded_instruction_.opcode == Opcode::BNE){
+                          next_pc_select = alu_zero_.read() == logic::LogicState::LOW;
+                      }
+                  } else if (control_.jump) {
+                      next_pc_select = true;
+                  }
+                  branch_taken_.write(
+                      next_pc_select ? logic::LogicState::HIGH : logic::LogicState::LOW
+                  );
+
                 // Generate PC + 1 from the current PC.
                 pc_adder_.evaluate();
 
-                for (std::size_t i = 0; i < AddressWidth; ++i)
-                {
-                    pc_next_[i].write(pc_increment_[i].read());
-                }
+                //selecting next PC state
+                pc_next_mux_.evaluate();
 
+                //updating program counter
                 program_counter_.evaluate();
+
+               
              }
 
 
@@ -326,6 +386,11 @@ namespace cpu{
                 return control_;
             }
 
+            [[nodiscard]]
+            bool halted() const noexcept {
+                return control_.halt;
+            }
+
             void write_register_for_test(
                 cpu::Register destination,
                 std::uint32_t value
@@ -382,6 +447,10 @@ namespace cpu{
 
           logic::RippleCarryAdder<AddressWidth>pc_adder_;
 
+          //Program counter multiplexers
+          logic::Bus<AddressWidth>selected_pc_next_;
+          logic::Mux<AddressWidth> pc_next_mux_;
+
           //Instruction decoding
           DecodedInstruction decoded_instruction_;
 
@@ -424,6 +493,14 @@ namespace cpu{
 
           DataMemory<DataMemoryAddressWidth, DataWidth> data_mem_;
           WriteBackMux<DataWidth> writeback_mux_;
+
+          //branching components
+          logic::Bus<AddressWidth> branch_target_;
+          logic::Bus<AddressWidth> branch_offset_;
+          logic::Wire branch_adder_carry_in_;
+          logic::Wire branch_adder_carry_out_;
+          logic::RippleCarryAdder<AddressWidth>branch_adder_;
+          logic::Wire branch_taken_;
      };
 }
 

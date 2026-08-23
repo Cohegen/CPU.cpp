@@ -62,6 +62,15 @@ std::uint32_t encode_b_type(
            (immediate & 0x3FFFFU);
 }
 
+std::uint32_t encode_j_type(
+    cpu::Opcode opcode,
+    std::int32_t immediate
+)
+{
+    return (static_cast<std::uint32_t>(opcode) << 26) |
+           (static_cast<std::uint32_t>(immediate) & 0x03FFFFFFU);
+}
+
 Datapath make_datapath(
     logic::Clock& clock,
     logic::Wire& reset,
@@ -738,7 +747,12 @@ int main()
         assert(datapath.alu_result().read_value() == 0);
         assert(datapath.alu_zero().read() == logic::LogicState::HIGH);
 
-        std::cout << "[PASS] BEQ instruction compares R1(10) == R2(10), ALU result = 0, alu_zero = HIGH\n";
+        // Verify PC transitions to branch target (0 + 5 = 5) on clock edge
+        clock.tick();
+        datapath.evaluate();
+        assert(datapath.pc().read_value() == 5);
+
+        std::cout << "[PASS] BEQ instruction compares R1(10) == R2(10), ALU result = 0, alu_zero = HIGH, branch taken (PC=5)\n";
     }
 
     // Branch condition test: BEQ R1, R2, +offset (R1 = 10, R2 = 5)
@@ -769,7 +783,192 @@ int main()
         assert(datapath.alu_result().read_value() != 0);
         assert(datapath.alu_zero().read() == logic::LogicState::LOW);
 
-        std::cout << "[PASS] BEQ instruction compares R1(10) != R2(5), ALU result != 0, alu_zero = LOW\n";
+        // Verify PC transitions to next sequential PC (0 + 1 = 1) on clock edge
+        clock.tick();
+        datapath.evaluate();
+        assert(datapath.pc().read_value() == 1);
+
+        std::cout << "[PASS] BEQ instruction compares R1(10) != R2(5), ALU result != 0, alu_zero = LOW, branch not taken (PC=1)\n";
+    }
+
+    // Branch condition test: BNE R1, R2, +offset (R1 = 10, R2 = 5)
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_b_type(
+                cpu::Opcode::BNE,
+                cpu::Register::R1,
+                cpu::Register::R2,
+                5
+            )
+        );
+
+        datapath.write_register_for_test(cpu::Register::R1, 10);
+        datapath.write_register_for_test(cpu::Register::R2, 5);
+
+        datapath.evaluate();
+
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::BNE);
+        assert(datapath.control_signals().branch == true);
+        assert(datapath.control_signals().alu_operation == cpu::ALUOperation::SUB);
+        assert(datapath.rs1_data().read_value() == 10);
+        assert(datapath.rs2_data().read_value() == 5);
+        assert(datapath.alu_result().read_value() != 0);
+        assert(datapath.alu_zero().read() == logic::LogicState::LOW);
+
+        // Verify PC transitions to branch target (0 + 5 = 5) on clock edge
+        clock.tick();
+        datapath.evaluate();
+        assert(datapath.pc().read_value() == 5);
+
+        std::cout << "[PASS] BNE instruction compares R1(10) != R2(5), ALU result != 0, alu_zero = LOW, branch taken (PC=5)\n";
+    }
+
+    // Branch condition test: BNE R1, R2, +offset (R1 = 10, R2 = 10)
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_b_type(
+                cpu::Opcode::BNE,
+                cpu::Register::R1,
+                cpu::Register::R2,
+                5
+            )
+        );
+
+        datapath.write_register_for_test(cpu::Register::R1, 10);
+        datapath.write_register_for_test(cpu::Register::R2, 10);
+
+        datapath.evaluate();
+
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::BNE);
+        assert(datapath.control_signals().branch == true);
+        assert(datapath.control_signals().alu_operation == cpu::ALUOperation::SUB);
+        assert(datapath.rs1_data().read_value() == 10);
+        assert(datapath.rs2_data().read_value() == 10);
+        assert(datapath.alu_result().read_value() == 0);
+        assert(datapath.alu_zero().read() == logic::LogicState::HIGH);
+
+        // Verify PC transitions to next sequential PC (0 + 1 = 1) on clock edge
+        clock.tick();
+        datapath.evaluate();
+        assert(datapath.pc().read_value() == 1);
+
+        std::cout << "[PASS] BNE instruction compares R1(10) == R2(10), ALU result = 0, alu_zero = HIGH, branch not taken (PC=1)\n";
+    }
+
+    // Control flow test: J +offset
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_j_type(cpu::Opcode::J, 10)
+        );
+
+        datapath.evaluate();
+
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::J);
+        assert(datapath.control_signals().jump == true);
+        assert(datapath.immediate().read_value() == 10);
+
+        // Verify PC transitions to jump target (0 + 10 = 10) on clock edge
+        clock.tick();
+        datapath.evaluate();
+        assert(datapath.pc().read_value() == 10);
+
+        std::cout << "[PASS] J instruction sets jump=true and PC updates to 10\n";
+    }
+
+    // Processor state test: HALT stops PC execution
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        auto datapath = make_datapath(
+            clock,
+            reset,
+            encode_i_type(cpu::Opcode::HALT, cpu::Register::R0, cpu::Register::R0, 0)
+        );
+
+        datapath.evaluate();
+
+        assert(datapath.decoded_instruction().opcode == cpu::Opcode::HALT);
+        assert(datapath.control_signals().halt == true);
+
+        const auto pc_halt = datapath.pc().read_value();
+
+        // Verify PC does NOT increment on clock edge
+        clock.tick();
+        datapath.evaluate();
+        assert(datapath.pc().read_value() == pc_halt);
+
+        clock.tick();
+        datapath.evaluate();
+        assert(datapath.pc().read_value() == pc_halt);
+
+        std::cout << "[PASS] HALT instruction sets halt=true and prevents PC increment (PC holds at " << pc_halt << ")\n";
+    }
+
+    // Full small program execution test
+    {
+        logic::Clock clock;
+        logic::Wire reset(logic::LogicState::LOW);
+        Datapath datapath(clock, reset);
+
+        // Program memory address maps to ROM
+        // Instructions:
+        // 0: LI   r1, 128 (0x80 - RAM base address)
+        // 1: LI   r2, 20
+        // 2: ADD  r3, r1, r2
+        // 3: SW   r3, 0(r1)  <- Write to data memory address (128 + 0 = 128)
+        // 4: LW   r4, 0(r1)  <- Load from data memory address (128 + 0 = 128) into r4
+        // 5: SUB  r5, r4, r1 <- r5 = r4 - r1 = 148 - 128 = 20
+        // 6: HALT
+        
+        constexpr std::uint32_t ram_base = 0x80;
+        
+        std::vector<std::size_t> program = {
+            encode_i_type(cpu::Opcode::LI, cpu::Register::R1, cpu::Register::R0, ram_base),
+            encode_i_type(cpu::Opcode::LI, cpu::Register::R2, cpu::Register::R0, 20),
+            encode_r_type(cpu::Opcode::ADD, cpu::Register::R3, cpu::Register::R1, cpu::Register::R2),
+            encode_s_type(cpu::Opcode::SW, cpu::Register::R3, cpu::Register::R1, 0),
+            encode_i_type(cpu::Opcode::LW, cpu::Register::R4, cpu::Register::R1, 0),
+            encode_r_type(cpu::Opcode::SUB, cpu::Register::R5, cpu::Register::R4, cpu::Register::R1),
+            encode_i_type(cpu::Opcode::HALT, cpu::Register::R0, cpu::Register::R0, 0)
+        };
+
+        datapath.load_instructions(program);
+
+        // We run the simulation until the CPU halts, up to a safety limit
+        int cycle_count = 0;
+        constexpr int max_cycles = 50;
+
+        while (!datapath.control_signals().halt && cycle_count < max_cycles) {
+            datapath.evaluate();
+            clock.tick();
+            datapath.evaluate();
+            clock.tick();
+            cycle_count++;
+        }
+
+        // Evaluate once more to ensure HALT propagates
+        datapath.evaluate();
+
+        assert(datapath.control_signals().halt == true);
+        assert(datapath.read_register_for_test(cpu::Register::R1) == ram_base);
+        assert(datapath.read_register_for_test(cpu::Register::R2) == 20);
+        assert(datapath.read_register_for_test(cpu::Register::R3) == ram_base + 20);
+        assert(datapath.read_register_for_test(cpu::Register::R4) == ram_base + 20);
+        assert(datapath.read_register_for_test(cpu::Register::R5) == 20);
+
+        std::cout << "[PASS] Full small program executed successfully in " << cycle_count << " cycles!\n";
     }
 
     std::cout << "[SKIP] R0 hardwired-zero test: current RegisterFile permits writes to R0\n";

@@ -77,7 +77,14 @@ DecodedInstruction InstructionDecoder::decode(
 
         case InstructionFormat::J_TYPE:
             // J-type: [opcode 6][immediate 26] or [unused]
-            decoded.immediate = instruction.immediate();
+            {
+                std::uint32_t raw_val = instruction.raw();
+                std::int32_t imm26 = static_cast<std::int32_t>(raw_val & 0x03FFFFFFU);
+                if ((imm26 & 0x02000000) != 0) {
+                    imm26 |= ~0x03FFFFFF;
+                }
+                decoded.immediate = imm26;
+            }
             break;
     }
 
