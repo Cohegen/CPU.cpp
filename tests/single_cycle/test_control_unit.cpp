@@ -1,4 +1,4 @@
-#include "../single_cycle_cpu/datapath/ControlUnit.hpp"
+#include "../../single_cycle_cpu/datapath/ControlUnit.hpp"
 #include <cassert>
 #include <iostream>
 

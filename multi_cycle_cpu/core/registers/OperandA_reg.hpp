@@ -17,10 +17,10 @@ namespace cpu{
     class OperandA_reg:public logic::Component{
         public:
            OperandA_reg(
-            logic::Bus<DataWidth> data,
+            logic::Bus<DataWidth>& data,
             logic::Wire& clock,
             logic::Wire& reset,
-            logic::Wire& a_write,
+            logic::Wire& a_write
            ):  
               read_data1(data),
               clock_(clock),
@@ -33,7 +33,7 @@ namespace cpu{
                 zero_bus_.write(logic::LogicState::LOW);
               }
 
-          void evalaute(){
+          void evaluate() noexcept {
             load_mux.evaluate();
             reset_mux.evaluate();
             op_A_reg.evaluate();
@@ -46,7 +46,7 @@ namespace cpu{
             
         private:
           //inputs
-          logic::Bus<DataWidth> read_data1; // data from the register file readData1 port
+          logic::Bus<DataWidth>& read_data1; // data from the register file readData1 port
           logic::Wire& clock_;
           logic::Wire& A_write_; // write enable signal
           logic::Wire& reset_;

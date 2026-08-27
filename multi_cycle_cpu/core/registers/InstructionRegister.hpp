@@ -33,7 +33,7 @@ namespace cpu{
          }
 
         
-        void evaluate(){
+        void evaluate() noexcept {
             load_mux.evaluate();
             reset_mux.evaluate();
             ir_.evaluate();

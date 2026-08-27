@@ -30,10 +30,14 @@ namespace cpu{
             {
                 zero_bus_.write(logic::LogicState::LOW);
             }
-             void evaluate(){
+             void evaluate() noexcept {
                 load_mux.evaluate();
                 reset_mux.evaluate();
                 alu_out_reg.evaluate();
+             }
+
+             const logic::Bus<DataWidth> read() const {
+                return alu_result_;
              }
 
         private:

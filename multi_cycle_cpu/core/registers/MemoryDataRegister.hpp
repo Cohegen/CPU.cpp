@@ -17,7 +17,7 @@ namespace cpu{
     class MemoryDataRegister:public logic::Component{
         public:
            MemoryDataRegister(
-            logic::Bus<DataWidth>data,
+            logic::Bus<DataWidth>& data,
             logic::Wire& clock,
             logic::Wire& mdr_write,
             logic::Wire& reset
@@ -25,14 +25,14 @@ namespace cpu{
               clock_(clock),
               mdr_write_(mdr_write),
               reset_(reset),
-              load_mux(mdr_output,memory_data_,mdr_write,load_output_),
+              load_mux(mdr_output_,memory_data_,mdr_write_,load_output_),
               reset_mux(load_output_,zero_bus_,reset_,mdr_input_),
               mdr_(mdr_input_,clock_,mdr_output_)
            {
             zero_bus_.write(logic::LogicState::LOW);
            }
 
-           void evaluate(){
+           void evaluate() noexcept {
             load_mux.evaluate();
             reset_mux.evaluate();
             mdr_.evaluate();
@@ -44,7 +44,7 @@ namespace cpu{
 
         private:
         //inputs
-        logic::Bus<DataWidth>memory_data_;
+        logic::Bus<DataWidth>& memory_data_;
         logic::Wire& clock_;
         logic::Wire& mdr_write_;
         logic::Wire& reset_;

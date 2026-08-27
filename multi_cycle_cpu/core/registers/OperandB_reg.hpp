@@ -24,7 +24,7 @@ namespace cpu{
          ):  readData2_(data), 
              clock_(clock),
              B_write_(B_write),
-             reset_(),
+             reset_(reset),
              load_mux(reg_output_,readData2_,B_write_,load_output_),
              reset_mux(load_output_,zero_bus_,reset_,op_B_input_),
              operand_B_reg(op_B_input_,clock_,reg_output_)
@@ -32,7 +32,7 @@ namespace cpu{
               zero_bus_.write(logic::LogicState::LOW);
            }
 
-          void evaluate(){
+          void evaluate() noexcept {
             load_mux.evaluate();
             reset_mux.evaluate();
             operand_B_reg.evaluate();
@@ -45,7 +45,7 @@ namespace cpu{
         
         private:
          //inputs
-         logic::Bus<DataWidth> readData2_;
+         logic::Bus<DataWidth>& readData2_;
          logic::Wire& clock_;
          logic::Wire& B_write_;
          logic::Wire& reset_;

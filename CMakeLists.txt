@@ -72,7 +72,7 @@ target_link_libraries(test_pc_imem_connection
 )
 
 add_executable(test_control_unit
-    tests/test_control_unit.cpp
+    tests/single_cycle/test_control_unit.cpp
 )
 
 target_link_libraries(test_control_unit
@@ -101,7 +101,7 @@ target_link_libraries(test_alu_operand_mux
 add_test(NAME test_alu_operand_mux COMMAND test_alu_operand_mux)
 
 add_executable(test_single_cycle_datapath
-    tests/test_single_cycle_datapath.cpp
+    tests/single_cycle/test_single_cycle_datapath.cpp
     src/InstructionDecoder.cpp
 )
 
@@ -133,4 +133,15 @@ target_link_libraries(test_writeback_mux
 )
 
 add_test(NAME test_writeback_mux COMMAND test_writeback_mux)
+
+add_executable(test_multi_cycle_registers
+    tests/multi_cycle/test_multi_cycle_registers.cpp
+)
+
+target_link_libraries(test_multi_cycle_registers
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_multi_cycle_registers COMMAND test_multi_cycle_registers)
 

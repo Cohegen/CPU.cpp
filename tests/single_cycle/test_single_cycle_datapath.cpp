@@ -1,4 +1,4 @@
-#include "../single_cycle_cpu/datapath/SingleCycleDatapath.hpp"
+#include "../../single_cycle_cpu/datapath/SingleCycleDatapath.hpp"
 #include <logic/signals/clock.hpp>
 #include <logic/signals/wire.hpp>
 #include <iostream>
