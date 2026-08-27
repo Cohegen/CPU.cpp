@@ -1,4 +1,4 @@
-#include "../single_cycle_cpu/datapath/DataMemory.hpp"
+#include "../components/DataMemory.hpp"
 
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>

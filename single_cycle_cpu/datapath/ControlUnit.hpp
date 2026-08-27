@@ -7,7 +7,7 @@ required by the single-cycle datapath
 */
 #pragma once
 
-#include "ControlSignals.hpp"
+#include "../../components/ControlSignals.hpp"
 #include "../../include/isa/DecodedInstruction.hpp"
 
 

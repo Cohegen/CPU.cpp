@@ -1,4 +1,4 @@
-#include "../single_cycle_cpu/datapath/ALUOperandMux.hpp"
+#include "../components/ALUOperandMux.hpp"
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>
 #include <cassert>

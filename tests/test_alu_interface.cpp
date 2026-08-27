@@ -1,4 +1,4 @@
-#include "../single_cycle_cpu/datapath/ALUInterface.hpp"
+#include "../components/ALUInterface.hpp"
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>
 #include <cassert>

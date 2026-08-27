@@ -1,4 +1,4 @@
-#include "../single_cycle_cpu/datapath/InstructionMemory.hpp"
+#include "../components/InstructionMemory.hpp"
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>
 #include <iostream>

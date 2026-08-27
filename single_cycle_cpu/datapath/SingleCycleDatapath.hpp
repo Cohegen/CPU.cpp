@@ -3,15 +3,15 @@ Implementation of the single cycle processor datapath
 */
 
 #pragma once
-#include "ControlSignals.hpp"
-#include "ProgramCounter.hpp"
-#include "InstructionMemory.hpp"
+#include "../../components/ControlSignals.hpp"
+#include "../../components/ProgramCounter.hpp"
+#include "../../components/InstructionMemory.hpp"
 #include "../../include/isa/InstructionDecoder.hpp"
 #include "ControlUnit.hpp"
-#include "ALUOperandMux.hpp"
-#include "ALUInterface.hpp"
-#include "DataMemory.hpp"
-#include "WriteBackMux.hpp"
+#include "../../components/ALUOperandMux.hpp"
+#include "../../components/ALUInterface.hpp"
+#include "../../components/DataMemory.hpp"
+#include "../../components/WriteBackMux.hpp"
 #include <logic/simulator/Component.hpp>
 
 #include <logic/signals/wire.hpp>

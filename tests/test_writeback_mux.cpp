@@ -1,4 +1,4 @@
-#include "../single_cycle_cpu/datapath/WriteBackMux.hpp"
+#include "../components/WriteBackMux.hpp"
 
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>

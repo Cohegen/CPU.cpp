@@ -1,4 +1,4 @@
-#include "../single_cycle_cpu/datapath/ProgramCounter.hpp"
+#include "../components/ProgramCounter.hpp"
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>
 #include <iostream>
