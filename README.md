@@ -1,2 +1,2 @@
 # CPU.cpp
-A simulation of CPU functioning using Logic.cpp library
+A simulation of how a CPU works using  components from the Logic.cpp library
