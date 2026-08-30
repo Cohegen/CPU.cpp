@@ -145,3 +145,13 @@ target_link_libraries(test_multi_cycle_registers
 
 add_test(NAME test_multi_cycle_registers COMMAND test_multi_cycle_registers)
 
+add_executable(test_multi_cycle_muxes
+    tests/multi_cycle/test_multi_cycle_muxes.cpp
+)
+
+target_link_libraries(test_multi_cycle_muxes
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_multi_cycle_muxes COMMAND test_multi_cycle_muxes)

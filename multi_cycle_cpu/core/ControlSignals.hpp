@@ -1,11 +1,11 @@
 #pragma once
 #include <cstdint>
 namespace cpu{
-    enum class ALUSrcA : std::uin8_t{
+    enum class ALUSrcA : std::uint8_t{
         pc,
         RegA
     };
-    enum class ALUSrcB:std::unint8_t{
+    enum class ALUSrcB:std::uint8_t{
         regB,
         constant,
         sign_extend,
