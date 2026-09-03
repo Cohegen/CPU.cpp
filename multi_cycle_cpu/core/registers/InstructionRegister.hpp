@@ -38,6 +38,14 @@ namespace cpu{
             reset_mux.evaluate();
             ir_.evaluate();
         }
+        logic::Bus<InstructionWidth>& output() noexcept {
+            return ir_output_;
+        }
+
+        const logic::Bus<InstructionWidth>& output() const noexcept {
+            return ir_output_;
+        }
+
         const logic::Bus<InstructionWidth> read() const{
             return ir_output_;
             }

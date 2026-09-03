@@ -2,3 +2,4 @@ build*/
 *.exe
 *.log
 build_error.txt
+test_data_mem*

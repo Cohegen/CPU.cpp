@@ -38,6 +38,14 @@ namespace cpu{
             mdr_.evaluate();
            }
 
+           logic::Bus<DataWidth>& output() noexcept {
+              return mdr_output_;
+           }
+
+           const logic::Bus<DataWidth>& output() const noexcept {
+              return mdr_output_;
+           }
+
            const logic::Bus<DataWidth>read() const{
               return mdr_output_;
            }

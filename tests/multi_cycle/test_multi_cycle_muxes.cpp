@@ -1,6 +1,8 @@
 #include "../../multi_cycle_cpu/core/muxes/ALUSrcA_mux.hpp"
 #include "../../multi_cycle_cpu/core/muxes/ALUSrcB_mux.hpp"
+#include "../../multi_cycle_cpu/core/muxes/OutMux.hpp"
 #include "../../multi_cycle_cpu/core/muxes/PCSource_mux.hpp"
+#include "../../multi_cycle_cpu/core/muxes/RegDestMux.hpp"
 
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>
@@ -117,12 +119,76 @@ void test_pc_source_mux()
     std::cout << "  [PASS] select HIGH (IorD = HIGH) -> outputs alu_result\n";
 }
 
+void test_out_mux()
+{
+    std::cout << "Testing OutMux (Mux3 PC source)...\n";
+
+    logic::Bus<32> alu_result;
+    logic::Bus<32> alu_out;
+    logic::Bus<32> pc_jump;
+    logic::Wire select0(logic::LogicState::LOW);
+    logic::Wire select1(logic::LogicState::LOW);
+    logic::Bus<32> pc_val;
+
+    cpu::OutMux<32, 32> mux(alu_result, alu_out, pc_jump, select0, select1, pc_val);
+
+    alu_result.write_value(0x00400004);
+    alu_out.write_value(0x00400008);
+    pc_jump.write_value(0x00400100);
+
+    select1.write(logic::LogicState::LOW);
+    select0.write(logic::LogicState::LOW);
+    mux.evaluate();
+    assert(pc_val.read_value() == 0x00400004);
+    std::cout << "  [PASS] select 00 -> outputs alu_result\n";
+
+    select0.write(logic::LogicState::HIGH);
+    mux.evaluate();
+    assert(pc_val.read_value() == 0x00400008);
+    std::cout << "  [PASS] select 01 -> outputs alu_out\n";
+
+    select1.write(logic::LogicState::HIGH);
+    select0.write(logic::LogicState::LOW);
+    mux.evaluate();
+    assert(pc_val.read_value() == 0x00400100);
+    std::cout << "  [PASS] select 10 -> outputs pc_jump\n";
+}
+
+void test_reg_dest_mux()
+{
+    std::cout << "Testing RegDestMux...\n";
+
+    logic::Bus<4> rt_val;
+    logic::Bus<4> rd_val;
+    logic::Wire reg_dst(logic::LogicState::LOW);
+    logic::Bus<4> reg_dest;
+
+    cpu::RegDestMux<4, 4> mux(rt_val, rd_val, reg_dst, reg_dest);
+
+    rt_val.write_value(0xA);
+    rd_val.write_value(0xB);
+
+    // Test select = LOW (should select rt_val)
+    reg_dst.write(logic::LogicState::LOW);
+    mux.evaluate();
+    assert(reg_dest.read_value() == 0xA);
+    std::cout << "  [PASS] select LOW (RegDst = LOW) -> outputs rt_val\n";
+
+    // Test select = HIGH (should select rd_val)
+    reg_dst.write(logic::LogicState::HIGH);
+    mux.evaluate();
+    assert(reg_dest.read_value() == 0xB);
+    std::cout << "  [PASS] select HIGH (RegDst = HIGH) -> outputs rd_val\n";
+}
+
 int main()
 {
     std::cout << "=== Running Multi-Cycle Muxes Unit Tests ===\n";
     test_alu_src_a_mux();
     test_alu_src_b_mux();
     test_pc_source_mux();
+    test_out_mux();
+    test_reg_dest_mux();
     std::cout << "[PASS] All Multi-Cycle Muxes Unit Tests Passed!\n";
     return 0;
 }

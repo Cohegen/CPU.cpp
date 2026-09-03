@@ -155,3 +155,15 @@ target_link_libraries(test_multi_cycle_muxes
 )
 
 add_test(NAME test_multi_cycle_muxes COMMAND test_multi_cycle_muxes)
+
+add_executable(test_multi_cycle_datapath
+    tests/multi_cycle/test_multi_cycle_datapath.cpp
+    src/InstructionDecoder.cpp
+)
+
+target_link_libraries(test_multi_cycle_datapath
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_multi_cycle_datapath COMMAND test_multi_cycle_datapath)

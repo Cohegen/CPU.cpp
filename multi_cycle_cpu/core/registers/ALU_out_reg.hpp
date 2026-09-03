@@ -36,6 +36,14 @@ namespace cpu{
                 alu_out_reg.evaluate();
              }
 
+             logic::Bus<DataWidth>& output() noexcept {
+                return alu_result_;
+             }
+
+             const logic::Bus<DataWidth>& output() const noexcept {
+                return alu_result_;
+             }
+
              const logic::Bus<DataWidth> read() const {
                 return alu_result_;
              }
@@ -48,14 +56,12 @@ namespace cpu{
            logic::Wire& reset_;
            logic::Bus<DataWidth>alu_out_reg_in;
            logic::Bus<DataWidth> zero_bus_;
+           logic::Bus<DataWidth> load_output_;
+           logic::Bus<DataWidth> alu_result_;
 
            //muxes
            logic::Mux<DataWidth>load_mux;
            logic::Mux<DataWidth> reset_mux;
-
-           //outputs
-           logic::Bus<DataWidth> load_output_;
-           logic::Bus<DataWidth> alu_result_;
 
            //register
            logic::Register<DataWidth>alu_out_reg;

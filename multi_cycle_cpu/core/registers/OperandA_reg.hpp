@@ -40,6 +40,14 @@ namespace cpu{
 
           }
 
+         logic::Bus<DataWidth>& output() noexcept {
+            return ALU_operand_A;
+         }
+
+         const logic::Bus<DataWidth>& output() const noexcept {
+            return ALU_operand_A;
+         }
+
          const logic::Bus<DataWidth> read() const{
             return ALU_operand_A;
          }

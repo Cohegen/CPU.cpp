@@ -1,5 +1,8 @@
 #pragma once
 #include <cstdint>
+
+#include "../../components/ControlSignals.hpp"
+
 namespace cpu{
     enum class ALUSrcA : std::uint8_t{
         pc,
@@ -24,21 +27,28 @@ namespace cpu{
     };
 
     struct MultiCycleControlSignals{
-        bool pcWrite;
-        bool irWrite;
-        bool mdrWrite;
+        bool pcWrite = false;
+        bool pcWriteCond = false;
+        bool bne = false;
+        bool irWrite = false;
+        bool mdrWrite = false;
 
-        bool aWrite;
-        bool bWrite;
-        bool aluOutWrite;
+        bool aWrite = false;
+        bool bWrite = false;
+        bool aluOutWrite = false;
 
-        bool regWrite;
-        bool memWrite;
+        bool regWrite = false;
+        bool memWrite = false;
+        bool memRead = false;
+        bool iorD = false;
+        bool regDst = true;
+        bool halt = false;
 
-        ALUSrcA aluSrcA;
-        ALUSrcB aluSrcB;
-        PCSource pcSource;
-        WriteBackSource writebackSource;
+        ALUSrcA aluSrcA = ALUSrcA::pc;
+        ALUSrcB aluSrcB = ALUSrcB::regB;
+        PCSource pcSource = PCSource::aluResult;
+        WriteBackSource writebackSource = WriteBackSource::aluOut;
+        ALUOperation aluOperation = ALUOperation::ADD;
     };
 
 }

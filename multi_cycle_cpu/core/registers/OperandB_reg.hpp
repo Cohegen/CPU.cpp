@@ -38,6 +38,14 @@ namespace cpu{
             operand_B_reg.evaluate();
           }
 
+          logic::Bus<DataWidth>& output() noexcept {
+             return reg_output_;
+          }
+
+          const logic::Bus<DataWidth>& output() const noexcept {
+             return reg_output_;
+          }
+
           const logic::Bus<DataWidth> read() const{
              return reg_output_;
           }
