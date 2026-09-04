@@ -58,6 +58,7 @@ namespace cpu{
            logic::Bus<DataWidth> zero_bus_;
            logic::Bus<DataWidth> load_output_;
            logic::Bus<DataWidth> alu_result_;
+          
 
            //muxes
            logic::Mux<DataWidth>load_mux;
