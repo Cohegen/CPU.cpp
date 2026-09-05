@@ -5,6 +5,7 @@
 #include <logic/simulator/Component.hpp>
 #include <logic/signals/clock.hpp>
 #include <logic/combinational/multiplexers/Mux.hpp>
+#include "../core/ControlSignals.hpp"
 
 
 namespace cpu{
@@ -41,18 +42,68 @@ namespace cpu{
              immediate_reg_(imm_reg_in_,clock_,immediate_out_),
 
              reset_mux_rd1(readData1_,zero_rd1_,reset_,reset_out_rd1_),
-             enable_mux_rd1(reset_out_rd1_,read_data1_out_,enable_,rd_reg_in_),
-             readData1_reg_(rd1_reg_in_,clock_,read_data1_out_),
-
+             enable_mux_rd1(reset_out_rd1_,read_data1_out_,enable_,rd1_reg_in_),
+             readData1_reg_(rd1_reg_in_,clock_,read_data1_out_),   
              
+             reset_mux_rd2(readData2_,zero_rd2_,reset_,reset_out_rd2_),
+             enable_mux_rd2(reset_out_rd2_,read_data2_out_,enable_,rd2_reg_in_),
+             readData2_reg_(rd2_reg_in_,clock_,read_data2_out_),
 
+             reset_mux_rs(rs_,zero_rs_,reset_,reset_out_rs_),
+             enable_mux_rs(reset_out_rs_,rs_out_,enable_,rs_reg_in_),
+             rs_reg(rs_reg_in_,clock_,rs_out_),
+
+             reset_mux_rt(rt_,zero_rt_,reset_,reset_out_rt_),
+             enable_mux_rt(reset_mux_rt,rt_out_,enable_,rt_reg_in_),
+             rt_reg(rt_reg_in_,clock_,rt_out_),
+
+             reset_mux_rd(rd_,zero_rd_,reset_,reset_out_rd_),
+             enable_mux_rd(reset_mux_rd,rd_out_,enable_,rd_reg_in_),
+             rd_reg(rd_reg_in_,clock_,rd_out_)
             { 
-                zero_imm_.write(logic::LogicState::HIGH);
-                zero_pc_.write(logic::LogicState::HIGH);
-                zero_rd1_.write(logic::LogicState::HIGH);
-                zero_rd2_.write(logic::LogicState::HIGH);
-                zero_rs_.write(logic::LogicState::HIGH);
-                zero_rt_.write(logic::LogicState::HIGH);
+                zero_imm_.write(logic::LogicState::LOW);
+                zero_pc_.write(logic::LogicState::LOW);
+                zero_rd1_.write(logic::LogicState::LOW);
+                zero_rd2_.write(logic::LogicState::LOW);
+                zero_rs_.write(logic::LogicState::LOW);
+                zero_rt_.write(logic::LogicState::LOW);
+            }
+
+            void evaluate() noexcept{
+                //pc
+                reset_mux_pc.evaluate();
+                enable_mux_pc.evaluate();
+                pcplus4_reg.evaluate();
+
+                //immediate
+                reset_mux_imm.evaluate();
+                enable_mux_imm.evaluate();
+                immediate_reg_.evaluate();
+
+                //rd1
+                reset_mux_rd1.evaluate();
+                enable_mux_rd1.evaluate();
+                readData1_reg_.evaluate();
+
+                //rd2
+                reset_mux_rd2.evaluate();
+                enable_mux_rd2.evaluate();
+                readData2_reg_.evaluate();
+
+                //rs
+                reset_mux_rs.evaluate();
+                enable_mux_rs.evaluate();
+                rs_reg.evaluate();
+
+                //rt
+                reset_mux_rt.evaluate();
+                enable_mux_rt.evaluate();
+                rt_reg.evaluate();
+
+                //rd
+                reset_mux_rd.evaluate();
+                enable_mux_rd.evaluate();
+                rd_reg.evaluate();
             }
 
         private:
@@ -61,6 +112,10 @@ namespace cpu{
           logic::Wire& enable_;
           logic::Clock& clock_;
           logic::Wire& reset_;
+
+          //control Signals
+          PipelinedControlSignals controls_;
+
           //pipeline registers
           Register<AddressWidth> pcplus4_reg;//stores the pc+4 value
           Register<DataWidth>readData1_reg_;//stores the first register operand
@@ -114,32 +169,32 @@ namespace cpu{
           Multiplexers for the registers
           */
           //1. for pcplus4_reg
-          logic::Mux<InstructionWidth>enable_mux_pc;
-          logic::Mux<InstructionWidth>reset_mux_pc;
+          logic::Mux<AddressWidth>enable_mux_pc;
+          logic::Mux<AddressWidth>reset_mux_pc;
 
           //2.for readData1
-          logic::Mux<InstructionWidth>enable_mux_rd1;
-          logic::Mux<InstructionWidth>reset_mux_rd1;
+          logic::Mux<DataWidth>enable_mux_rd1;
+          logic::Mux<DataWidth>reset_mux_rd1;
 
           //3. for readData2
-          logic::Mux<InstructionWidth>enable_mux_rd2;
-          logic::Mux<InstructionWidth>reset_mux_rd2;
+          logic::Mux<DataWidth>enable_mux_rd2;
+          logic::Mux<DataWidth>reset_mux_rd2;
 
           //4. for immediate register
-          logic::Mux<InstructionWidth>enable_mux_imm;
-          logic::Mux<InstructionWidth>reset_mux_imm;
+          logic::Mux<DataWidth>enable_mux_imm;
+          logic::Mux<DataWidth>reset_mux_imm;
 
           //5. for source1
-          logic::Mux<InstructionWidth>enable_mux_rs;
-          logic::Mux<InstructionWidth>reset_mux_rs;
+          logic::Mux<5>enable_mux_rs;
+          logic::Mux<5>reset_mux_rs;
 
           //6. for source2
-          logic::Mux<InstructionWidth>enable_mux_rt;
-          logic::Mux<InstructionWidth>reset_mux_rt;
+          logic::Mux<5>enable_mux_rt;
+          logic::Mux<5>reset_mux_rt;
 
           //7. for destination
-          logic::Mux<InstructionWidth>enable_mux_rd;
-          logic::Mux<InstructionWidth>reset_mux_rd;
+          logic::Mux<5>enable_mux_rd;
+          logic::Mux<5>reset_mux_rd;
 
 
 
