@@ -24,9 +24,9 @@ void clock_component(logic::Wire& clock, TComponent& comp)
     comp.evaluate();
 }
 
-// ============================================================================
+
 // Test 1: Basic pass-through / capture test
-// ============================================================================
+
 void test_1_basic_passthrough_capture()
 {
     std::cout << "[Test 1] Running Basic Pass-Through / Capture Test...\n";
@@ -125,9 +125,9 @@ void test_1_basic_passthrough_capture()
     std::cout << "  [PASS] Test 1 passed successfully.\n";
 }
 
-// ============================================================================
+
 // Test 2: Reset test
-// ============================================================================
+
 void test_2_reset()
 {
     std::cout << "[Test 2] Running Reset Test...\n";
@@ -261,9 +261,9 @@ void test_2_reset()
     std::cout << "  [PASS] Test 2 passed successfully.\n";
 }
 
-// ============================================================================
+
 // Test 3: Enable test (Pipeline stall)
-// ============================================================================
+
 void test_3_enable_stall()
 {
     std::cout << "[Test 3] Running Enable Test (Pipeline Stall)...\n";
@@ -306,9 +306,9 @@ void test_3_enable_stall()
     std::cout << "  [PASS] Test 3 passed successfully.\n";
 }
 
-// ============================================================================
+
 // Test 4: Reset priority test
-// ============================================================================
+
 void test_4_reset_priority()
 {
     std::cout << "[Test 4] Running Reset Priority Test...\n";
@@ -356,9 +356,9 @@ void test_4_reset_priority()
     std::cout << "  [PASS] Test 4 passed successfully.\n";
 }
 
-// ============================================================================
+
 // Test 5: Clock edge test
-// ============================================================================
+
 void test_5_clock_edge()
 {
     std::cout << "[Test 5] Running Clock Edge Test...\n";
@@ -414,9 +414,9 @@ void test_5_clock_edge()
     std::cout << "  [PASS] Test 5 passed successfully.\n";
 }
 
-// ============================================================================
+
 // Test 6: Width tests
-// ============================================================================
+
 void test_6_widths()
 {
     std::cout << "[Test 6] Running Width Tests...\n";
@@ -509,9 +509,9 @@ void test_6_widths()
     std::cout << "  [PASS] Test 6 passed successfully.\n";
 }
 
-// ============================================================================
+
 // Test 7: Back-to-back instruction test
-// ============================================================================
+
 void test_7_back_to_back_instructions()
 {
     std::cout << "[Test 7] Running Back-to-Back Instruction Test...\n";
@@ -635,9 +635,8 @@ void test_7_back_to_back_instructions()
     std::cout << "  [PASS] Test 7 passed successfully.\n";
 }
 
-// ============================================================================
+
 // Test 8: Test the control signals separately
-// ============================================================================
 void test_8_control_signals_separately()
 {
     std::cout << "[Test 8] Running Control Signals Test...\n";
