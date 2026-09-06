@@ -36,7 +36,7 @@ namespace cpu {
             reset_(reset),
             enable_(enable),
 
-            // Data muxes & registers
+            // Data muxes and registers
             enable_mux_pc(pcplus4_out_, pcplus4_, enable_, enable_out_pc_),
             reset_mux_pc(enable_out_pc_, zero_pc_, reset_, pcplus4_reg_in_),
             pcplus4_reg(pcplus4_reg_in_, clock_, pcplus4_out_),
@@ -65,7 +65,7 @@ namespace cpu {
             reset_mux_rd(enable_out_rd_, zero_rd_, reset_, rd_reg_in_),
             rd_reg(rd_reg_in_, clock_, rd_out_),
 
-            // Control muxes & registers
+            // Control muxes and registers
             enable_mux_reg_dst(reg_dst_out_, reg_dst_in_, enable_, enable_out_reg_dst_),
             reset_mux_reg_dst(enable_out_reg_dst_, zero_1_, reset_, reg_dst_reg_in_),
             reg_dst_reg_(reg_dst_reg_in_, clock_, reg_dst_out_),
@@ -397,4 +397,4 @@ namespace cpu {
         logic::Register<1> mem_to_reg_reg_;
     };
 
-} // namespace cpu
+}
