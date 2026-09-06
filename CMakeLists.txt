@@ -167,3 +167,15 @@ target_link_libraries(test_multi_cycle_datapath
 )
 
 add_test(NAME test_multi_cycle_datapath COMMAND test_multi_cycle_datapath)
+
+add_executable(test_pipelined_registers
+    tests/pipelined/test_pipelined_registers.cpp
+)
+
+target_link_libraries(test_pipelined_registers
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_pipelined_registers COMMAND test_pipelined_registers)
+
