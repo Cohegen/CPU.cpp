@@ -71,7 +71,7 @@ namespace cpu {
             set_controls(initial_controls);
         }
 
-        // Support author's parameter order: (enable, clock, reset, ALUResult, readData2, rd)
+        
         EX_MEM(
             logic::Wire& enable,
             logic::Wire& clock,
@@ -257,4 +257,4 @@ namespace cpu {
         logic::Register<1> mem_to_reg_reg_;
     };
 
-} // namespace cpu
+} // namespace cpu
