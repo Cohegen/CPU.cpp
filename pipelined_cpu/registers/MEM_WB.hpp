@@ -28,7 +28,7 @@ namespace cpu {
             reset_(reset),
             enable_(enable),
 
-            // Data muxes & registers
+            // Data muxes and registers
             enable_mux_read_data_(readData_out_, readData_, enable_, enable_out_read_data_),
             reset_mux_read_data_(enable_out_read_data_, zero_read_data_, reset_, read_data_reg_in_),
             readData_reg_(read_data_reg_in_, clock_, readData_out_),
@@ -41,7 +41,7 @@ namespace cpu {
             reset_mux_rd_(enable_out_rd_, zero_rd_, reset_, rd_reg_in_),
             rd_reg_(rd_reg_in_, clock_, rd_out_),
 
-            // Control muxes & registers
+            // Control muxes and registers
             enable_mux_reg_write_(reg_write_out_, reg_write_in_, enable_, enable_out_reg_write_),
             reset_mux_reg_write_(enable_out_reg_write_, zero_1_, reset_, reg_write_reg_in_),
             reg_write_reg_(reg_write_reg_in_, clock_, reg_write_out_),
@@ -58,7 +58,7 @@ namespace cpu {
             set_controls(initial_controls);
         }
 
-        // Support author's parameter order: (enable, clock, reset, ALUResult, readData, rd)
+       
         MEM_WB(
             logic::Wire& enable,
             logic::Wire& clock,
@@ -197,4 +197,4 @@ namespace cpu {
         logic::Register<1> mem_to_reg_reg_;
     };
 
-} // namespace cpu
+} 
