@@ -179,3 +179,15 @@ target_link_libraries(test_pipelined_registers
 
 add_test(NAME test_pipelined_registers COMMAND test_pipelined_registers)
 
+add_executable(test_pipelined_muxes
+    tests/pipelined/test_pipelined_muxes.cpp
+)
+
+target_link_libraries(test_pipelined_muxes
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_pipelined_muxes COMMAND test_pipelined_muxes)
+
+
