@@ -190,4 +190,16 @@ target_link_libraries(test_pipelined_muxes
 
 add_test(NAME test_pipelined_muxes COMMAND test_pipelined_muxes)
 
+add_executable(test_pipelined_datapath
+    tests/pipelined/test_pipelined_datapath.cpp
+    src/InstructionDecoder.cpp
+)
+
+target_link_libraries(test_pipelined_datapath
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_pipelined_datapath COMMAND test_pipelined_datapath)
+
 
