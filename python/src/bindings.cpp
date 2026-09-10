@@ -47,7 +47,7 @@ std::uint32_t encode_j(cpu::Opcode op, std::int32_t imm) {
 PYBIND11_MODULE(_pycpu_core, m) {
     m.doc() = "C++ backend for pycpu architecture simulation";
 
-    // 1. Opcode Enum
+    // Opcode Enum
     py::enum_<cpu::Opcode>(m, "Opcode")
         .value("NOP", cpu::Opcode::NOP)
         .value("ADD", cpu::Opcode::ADD)
@@ -66,7 +66,7 @@ PYBIND11_MODULE(_pycpu_core, m) {
         .value("HALT", cpu::Opcode::HALT)
         .export_values();
 
-    // 2. Register Enum
+    // Register Enum
     py::enum_<cpu::Register>(m, "Register")
         .value("R0", cpu::Register::R0)
         .value("R1", cpu::Register::R1)
@@ -86,14 +86,14 @@ PYBIND11_MODULE(_pycpu_core, m) {
         .value("R15", cpu::Register::R15)
         .export_values();
 
-    // 3. Instruction Encoding Helpers
+    // Instruction Encoding Helpers
     m.def("encode_r_type", &encode_r, "Encode an R-type instruction word");
     m.def("encode_i_type", &encode_i, "Encode an I-type instruction word");
     m.def("encode_s_type", &encode_s, "Encode an S-type instruction word");
     m.def("encode_b_type", &encode_b, "Encode a B-type instruction word");
     m.def("encode_j_type", &encode_j, "Encode a J-type instruction word");
 
-    // 4. NativeCPU32
+    // NativeCPU32
     using CPU32 = cpu::CPU<32, 32, 32, 4, 8, 8>;
     py::class_<CPU32>(m, "NativeCPU32")
         .def(py::init<>())
