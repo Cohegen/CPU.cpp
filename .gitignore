@@ -1,5 +1,15 @@
 build*/
 *.exe
+*.dll
 *.log
 build_error.txt
 test_data_mem*
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyd
+*.egg-info/
+dist/
+build/
+

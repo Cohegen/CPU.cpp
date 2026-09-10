@@ -8,7 +8,17 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_subdirectory("../Logic.cpp" "${CMAKE_BINARY_DIR}/Logic.cpp-build")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../Logic.cpp/CMakeLists.txt")
+    add_subdirectory("../Logic.cpp" "${CMAKE_BINARY_DIR}/Logic.cpp-build")
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+        LogicCpp
+        GIT_REPOSITORY https://github.com/Cohegen/Logic.cpp.git
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(LogicCpp)
+endif()
 
 add_executable(cpu_cpp
     src/main.cpp

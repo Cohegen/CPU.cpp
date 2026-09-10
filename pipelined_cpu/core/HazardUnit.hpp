@@ -2,16 +2,16 @@
     HazardUnit.hpp
 
     Hazard Detection and Forwarding Unit for the 5-Stage Pipelined Processor
-    based on the ARM pipeline architecture (Harris & Harris).
+    based on the ARM pipeline architecture 
 
-    Responsibilities:
-    1. Data Forwarding:
+    it is responsible for:
+     Data Forwarding:
        - ForwardAE: Forwards ALU operand A from MEM (10) or WB (01) stage if hazard detected.
        - ForwardBE: Forwards ALU operand B from MEM (10) or WB (01) stage if hazard detected.
-    2. Load-Use Hazard Detection:
+     Load-Use Hazard Detection:
        - Stalls IF and ID stages (StallF, StallD) and flushes EX stage (FlushE) when a load
          instruction is followed by a dependent instruction.
-    3. Control Hazard (Branch Flush):
+    Control Hazard (Branch Flush):
        - Flushes IF/ID (FlushD) and ID/EX (FlushE) registers when a branch is taken.
 */
 
@@ -94,9 +94,9 @@ public:
         const bool branch_taken_active = (branch_taken_e_.read() == logic::LogicState::HIGH);
 
         // Forward A logic:
-        // 10: from MEM stage (ALUOutM)
-        // 01: from WB stage (ResultW)
-        // 00: from ID/EX register (RD1)
+        // 10 from MEM stage (ALUOutM)
+        // 01 from WB stage (ResultW)
+        // 00 from ID/EX register (RD1)
         if (reg_write_m_active && (wa3_m_val == ra1_e_val)) {
             forward_ae_.write_value(0b10);
         } else if (reg_write_w_active && (wa3_w_val == ra1_e_val)) {
@@ -106,9 +106,9 @@ public:
         }
 
         // Forward B logic:
-        // 10: from MEM stage (ALUOutM)
-        // 01: from WB stage (ResultW)
-        // 00: from ID/EX register (RD2)
+        // 10 from MEM stage (ALUOutM)
+        // 01 from WB stage (ResultW)
+        // 00 from ID/EX register (RD2)
         if (reg_write_m_active && (wa3_m_val == ra2_e_val)) {
             forward_be_.write_value(0b10);
         } else if (reg_write_w_active && (wa3_w_val == ra2_e_val)) {
@@ -167,4 +167,4 @@ private:
     logic::Wire& flush_e_;
 };
 
-} // namespace cpu
+} 

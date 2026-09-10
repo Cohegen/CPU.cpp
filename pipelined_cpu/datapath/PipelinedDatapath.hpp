@@ -554,4 +554,4 @@ private:
     HazardUnit<RegisterAddressWidth> hazard_unit_;
 };
 
-} // namespace cpu
+} 

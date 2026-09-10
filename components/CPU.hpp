@@ -2,64 +2,66 @@
 
 #include <cstddef>
 #include <cstdint>
-#include<vector>
+#include <vector>
 #include <logic/signals/clock.hpp>
 #include <logic/signals/wire.hpp>
-#include "single_cycle_cpu/SingleCycleDatapath.hpp"
+#include "../single_cycle_cpu/datapath/SingleCycleDatapath.hpp"
 
-namespace cpu{
+namespace cpu {
     template<
-    std::size_t AddressWidth =32,
+    std::size_t AddressWidth = 32,
     std::size_t DataWidth = 32,
-    std::size_t InstructionWidth =32,
-    std::size_t RegisterAddressWidth =4,
-    std::size_t InstructionMemoryAddressWidth =8,
-    std::size_t DataMemoryAddressWidth =8
+    std::size_t InstructionWidth = 32,
+    std::size_t RegisterAddressWidth = 4,
+    std::size_t InstructionMemoryAddressWidth = 8,
+    std::size_t DataMemoryAddressWidth = 8
     >
-    class CPU{
+    class CPU {
         public:
-          CPU():datapath_(clock_,reset_){}
+          CPU() : datapath_(clock_, reset_) {}
 
-          void reset() noexcept{
+          void reset() noexcept {
             reset_.write(logic::LogicState::HIGH);
-
             datapath_.evaluate();
-
             reset_.write(logic::LogicState::LOW);
+            datapath_.evaluate();
+            halted_ = false;
           }
 
-          void step() noexcept{
-            if(halted_){
+          void step() noexcept {
+            if (halted_) {
                 return;
             }
             datapath_.evaluate();
 
-            //rising edge
+            // rising edge
             clock_.tick();
-
-            //updates in the datapath
             datapath_.evaluate();
 
-            //checking whether the instruction that has been executed was a halt
-            if(datapath_.control_signals().halt){
+            // falling edge (complete 1 cycle)
+            clock_.tick();
+            datapath_.evaluate();
+
+            // checking whether the instruction that has been executed was a halt
+            if (datapath_.control_signals().halt) {
                 halted_ = true;
-                
             }
-           
           }
 
-          void run() noexcept{
-            while(!halted_){
+          void run(std::size_t max_cycles = 100000) noexcept {
+            std::size_t c = 0;
+            while (!halted_ && c < max_cycles) {
                 step();
+                ++c;
             }
           }
 
           [[nodiscard]]
-          bool halted() const noexcept{
+          bool halted() const noexcept {
             return halted_;
           }
 
-          void load_program(const std::vector<std::size_t>& instructions)noexcept{
+          void load_program(const std::vector<std::size_t>& instructions) noexcept {
             datapath_.load_instructions(instructions);
           }
 
@@ -71,9 +73,40 @@ namespace cpu{
                  RegisterAddressWidth,
                  InstructionMemoryAddressWidth,
                  DataMemoryAddressWidth
-               >& datapath() const noexcept{
+               >& datapath() const noexcept {
                 return datapath_;
-               }
+          }
+
+          [[nodiscard]]
+          SingleCycleDatapath<
+                 AddressWidth,
+                 DataWidth,
+                 InstructionWidth,
+                 RegisterAddressWidth,
+                 InstructionMemoryAddressWidth,
+                 DataMemoryAddressWidth
+               >& datapath() noexcept {
+                return datapath_;
+          }
+
+          [[nodiscard]]
+          std::uint32_t read_register(Register reg) noexcept {
+            return datapath_.read_register_for_test(reg);
+          }
+
+          void write_register(Register reg, std::uint32_t value) noexcept {
+            datapath_.write_register_for_test(reg, value);
+          }
+
+          [[nodiscard]]
+          std::uint32_t pc() const noexcept {
+            return static_cast<std::uint32_t>(datapath_.pc().read_value());
+          }
+
+          [[nodiscard]]
+          std::uint64_t cycles() const noexcept {
+            return clock_.cycle() / 2;
+          }
 
         private:
           logic::Clock clock_;
@@ -85,10 +118,8 @@ namespace cpu{
               DataWidth,
               InstructionWidth,
               RegisterAddressWidth,
-              InstructionMemoryAdressWidth,
-              DataMemoryAdressWidth
-          >datapath_;
-          
-
+              InstructionMemoryAddressWidth,
+              DataMemoryAddressWidth
+          > datapath_;
     };
 }
