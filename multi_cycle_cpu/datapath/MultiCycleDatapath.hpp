@@ -166,8 +166,8 @@ public:
         evaluate_datapath();
     }
 
-    /**
-     * @brief Executes a single clock cycle using the autonomous FSM control unit.
+    /*
+     Executes a single clock cycle using the autonomous FSM control unit.
      */
     void step_cycle() noexcept
     {
@@ -176,8 +176,8 @@ public:
         fsm_.step(decoded_instruction_);
     }
 
-    /**
-     * @brief Executes cycles autonomously until an instruction completes (returns to FETCH) or CPU halts.
+    /*
+    brief Executes cycles autonomously until an instruction completes (returns to FETCH) or CPU halts.
      */
     void step_instruction() noexcept
     {
@@ -189,8 +189,8 @@ public:
         } while (fsm_.current_state() != FSMControlUnit::State::FETCH && !fsm_.is_halted());
     }
 
-    /**
-     * @brief Runs instructions autonomously until the CPU halts or max_cycles is reached.
+    /*
+     Runs instructions autonomously until the CPU halts or max_cycles is reached.
      */
     void run(std::size_t max_cycles = 100000) noexcept
     {
@@ -464,6 +464,7 @@ private:
     logic::Wire clock_signal_;
     logic::Wire pc_enable_;
 
+    //control signals
     logic::Wire ir_write_;
     logic::Wire mdr_write_;
     logic::Wire a_write_;
@@ -483,6 +484,7 @@ private:
     logic::Wire alu_zero_;
     logic::Wire alu_carry_;
 
+    // internal component source and result buses
     logic::Bus<AddressWidth> pc_;
     logic::Bus<AddressWidth> pc_next_;
     logic::Bus<DataWidth> constant_one_;
@@ -509,6 +511,7 @@ private:
     MultiCycleControlSignals control_{};
     DecodedInstruction decoded_instruction_{};
 
+    //architectural components of the datapath
     ProgramCounter<AddressWidth> program_counter_;
     InstructionRegister<InstructionWidth> instruction_register_;
     MemoryDataRegister<DataWidth> memory_data_register_;
@@ -519,6 +522,7 @@ private:
     DataMemory<MemoryAddressWidth, DataWidth> memory_;
     FSMControlUnit fsm_{};
 
+    //Datapath muxes
     ALUSrcA_mux<AddressWidth, DataWidth, DataWidth> alu_src_a_mux_;
     ALUSrcB_mux<DataWidth, DataWidth> alu_src_b_mux_;
     PCSource_mux<AddressWidth, DataWidth, AddressWidth> ior_d_mux_;
@@ -529,4 +533,4 @@ private:
     logic::LogicalLeftShifter<DataWidth> immediate_shifter_;
 };
 
-} // namespace cpu
+} 
