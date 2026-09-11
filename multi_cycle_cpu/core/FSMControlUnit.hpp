@@ -11,16 +11,16 @@
 
 namespace cpu {
 
-/**
- * @brief Autonomous Finite State Machine (FSM) Control Unit for the Multi-Cycle CPU.
- *
- * Implements the classic multi-cycle control architecture (Harris & Harris / Patterson & Hennessy).
- * Instructions progress through distinct micro-states across multiple clock cycles:
- *   - FETCH (1 cycle): Memory read of instruction, IR write, PC <= PC + 1.
- *   - DECODE (1 cycle): Read register file operands A and B, precompute branch target.
- *   - EXECUTE / MEM_ADDR / BRANCH / JUMP (1 cycle): ALU operation or address calculation.
- *   - MEM_READ / MEM_WRITE (1 cycle for memory instructions).
- *   - MEM_WB / ALU_WB (1 cycle for register writeback).
+/*
+ Autonomous Finite State Machine (FSM) Control Unit for the Multi-Cycle CPU
+ 
+ Implements the classic multi-cycle control architecture based on Harris and Harris / Patterson and Hennessy
+ Instructions progress through distinct micro-states across multiple clock cycles:
+    - FETCH (1 cycle): Memory read of instruction, IR write, PC <= PC + 1.
+    - DECODE (1 cycle): Read register file operands A and B, precompute branch target.
+    - EXECUTE / MEM_ADDR / BRANCH / JUMP (1 cycle): ALU operation or address calculation.
+    - MEM_READ / MEM_WRITE (1 cycle for memory instructions).
+    - MEM_WB / ALU_WB (1 cycle for register writeback).
  */
 class FSMControlUnit {
 public:
@@ -41,8 +41,8 @@ public:
 
     FSMControlUnit() noexcept = default;
 
-    /**
-     * @brief Reset the FSM back to the initial FETCH state.
+    /*
+     Reset the FSM back to the initial FETCH state.
      */
     void reset() noexcept {
         current_state_ = State::FETCH;
@@ -83,8 +83,8 @@ public:
         }
     }
 
-    /**
-     * @brief Generates Moore/Mealy control signals for the current state.
+    /*
+     Generates Moore/Mealy control signals for the current state.
      */
     [[nodiscard]]
     MultiCycleControlSignals generate(const DecodedInstruction& instruction) const noexcept {
@@ -92,7 +92,7 @@ public:
 
         switch (current_state_) {
             case State::FETCH:
-                // Read instruction from memory, latch into IR, increment PC
+                // Reading instruction from memory, latch into IR, increment PC
                 signals.memRead = true;
                 signals.irWrite = true;
                 signals.iorD = false;
@@ -104,7 +104,7 @@ public:
                 break;
 
             case State::DECODE:
-                // Read register operands into A and B, precompute branch target (PC + imm) into ALU_out
+                // Reading register operands into A and B, precompute branch target (PC + imm) into ALU_out
                 signals.aWrite = true;
                 signals.bWrite = true;
                 signals.aluOutWrite = true;
@@ -114,7 +114,7 @@ public:
                 break;
 
             case State::MEM_ADDR:
-                // Compute base + offset (A + immediate) and store into ALU_out
+                // Computing base + offset (A + immediate) and store into ALU_out
                 signals.aluSrcA = ALUSrcA::RegA;
                 signals.aluSrcB = ALUSrcB::sign_extend;
                 signals.aluOperation = ALUOperation::ADD;
@@ -122,21 +122,21 @@ public:
                 break;
 
             case State::MEM_READ:
-                // Read memory at address ALU_out into Memory Data Register (MDR)
+                // Reading memory at address ALU_out into Memory Data Register (MDR)
                 signals.memRead = true;
                 signals.mdrWrite = true;
                 signals.iorD = true;
                 break;
 
             case State::MEM_WB:
-                // Write MDR content into destination register (rd)
+                // Writing MDR content into destination register (rd)
                 signals.regWrite = true;
                 signals.regDst = true;
                 signals.writebackSource = WriteBackSource::memoryData;
                 break;
 
             case State::MEM_WRITE:
-                // Write register operand B into memory at address ALU_out
+                // Writing register operand B into memory at address ALU_out
                 signals.memWrite = true;
                 signals.iorD = true;
                 break;
@@ -162,14 +162,14 @@ public:
                 break;
 
             case State::ALU_WB:
-                // Write ALU_out result into destination register (rd)
+                // Writing ALU_out result into destination register (rd)
                 signals.regWrite = true;
                 signals.regDst = true;
                 signals.writebackSource = WriteBackSource::aluOut;
                 break;
 
             case State::BRANCH:
-                // Compare operands A and B (SUB), conditionally update PC if branch condition holds
+                // Comparing operands A and B (SUB), conditionally updating PC if branch condition holds
                 signals.aluSrcA = ALUSrcA::RegA;
                 signals.aluSrcB = ALUSrcB::regB;
                 signals.aluOperation = ALUOperation::SUB;
@@ -193,8 +193,8 @@ public:
         return signals;
     }
 
-    /**
-     * @brief Computes the next state transition based on current state and instruction.
+    /*
+     Computes the next state transition based on current state and instruction.
      */
     void update_next_state(const DecodedInstruction& instruction) noexcept {
         switch (current_state_) {
@@ -274,15 +274,15 @@ public:
         }
     }
 
-    /**
-     * @brief Clocks the FSM, advancing currentState to nextState.
+    /*
+      Clocks the FSM, advancing currentState to nextState.
      */
     void clock() noexcept {
         current_state_ = next_state_;
     }
 
-    /**
-     * @brief Computes next state logic and advances the clock in one step.
+    /*
+    brief Computes next state logic and advances the clock in one step.
      */
     void step(const DecodedInstruction& instruction) noexcept {
         update_next_state(instruction);
@@ -307,4 +307,4 @@ private:
     State next_state_{State::FETCH};
 };
 
-} // namespace cpu
+} 
