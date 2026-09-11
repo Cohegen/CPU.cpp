@@ -10,6 +10,7 @@
 #include "../core/registers/OperandB_reg.hpp"
 #include "../core/registers/ALU_out_reg.hpp"
 #include "../core/ControlSignals.hpp"
+#include "../core/FSMControlUnit.hpp"
 #include "../core/muxes/ALUSrcA_mux.hpp"
 #include "../core/muxes/ALUSrcB_mux.hpp"
 #include "../core/muxes/OutMux.hpp"
@@ -150,6 +151,68 @@ public:
         step();
     }
 
+    /**
+     * @brief Resets the CPU and FSM to initial state.
+     */
+    void reset() noexcept
+    {
+        fsm_.reset();
+        reset_.write(logic::LogicState::HIGH);
+        evaluate_datapath();
+        clock_.tick();
+        evaluate_datapath();
+        clock_.tick();
+        reset_.write(logic::LogicState::LOW);
+        evaluate_datapath();
+    }
+
+    /**
+     * @brief Executes a single clock cycle using the autonomous FSM control unit.
+     */
+    void step_cycle() noexcept
+    {
+        control_ = fsm_.generate(decoded_instruction_);
+        step();
+        fsm_.step(decoded_instruction_);
+    }
+
+    /**
+     * @brief Executes cycles autonomously until an instruction completes (returns to FETCH) or CPU halts.
+     */
+    void step_instruction() noexcept
+    {
+        if (fsm_.is_halted()) {
+            return;
+        }
+        do {
+            step_cycle();
+        } while (fsm_.current_state() != FSMControlUnit::State::FETCH && !fsm_.is_halted());
+    }
+
+    /**
+     * @brief Runs instructions autonomously until the CPU halts or max_cycles is reached.
+     */
+    void run(std::size_t max_cycles = 100000) noexcept
+    {
+        std::size_t cycles = 0;
+        while (!fsm_.is_halted() && cycles < max_cycles) {
+            step_cycle();
+            ++cycles;
+        }
+    }
+
+    [[nodiscard]]
+    FSMControlUnit& fsm() noexcept
+    {
+        return fsm_;
+    }
+
+    [[nodiscard]]
+    const FSMControlUnit& fsm() const noexcept
+    {
+        return fsm_;
+    }
+
     void load_instructions(const std::vector<std::size_t>& instructions) noexcept
     {
         memory_.load_rom(instructions);
@@ -266,7 +329,7 @@ public:
     [[nodiscard]]
     bool halted() const noexcept
     {
-        return control_.halt;
+        return control_.halt || fsm_.is_halted();
     }
 
     void write_register_for_test(
@@ -454,6 +517,7 @@ private:
     ALU_out_reg<DataWidth> alu_out_;
     logic::RegisterFile<RegisterAddressWidth, DataWidth> register_file_;
     DataMemory<MemoryAddressWidth, DataWidth> memory_;
+    FSMControlUnit fsm_{};
 
     ALUSrcA_mux<AddressWidth, DataWidth, DataWidth> alu_src_a_mux_;
     ALUSrcB_mux<DataWidth, DataWidth> alu_src_b_mux_;

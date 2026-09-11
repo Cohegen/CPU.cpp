@@ -178,6 +178,18 @@ target_link_libraries(test_multi_cycle_datapath
 
 add_test(NAME test_multi_cycle_datapath COMMAND test_multi_cycle_datapath)
 
+add_executable(test_fsm_control_unit
+    tests/multi_cycle/test_fsm_control_unit.cpp
+    src/InstructionDecoder.cpp
+)
+
+target_link_libraries(test_fsm_control_unit
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_fsm_control_unit COMMAND test_fsm_control_unit)
+
 add_executable(test_pipelined_registers
     tests/pipelined/test_pipelined_registers.cpp
 )
