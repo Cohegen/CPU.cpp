@@ -84,7 +84,7 @@ public:
     }
 
     /*
-     Generates Moore/Mealy control signals for the current state.
+     Generates Moore/Mealy control signals for the current state
      */
     [[nodiscard]]
     MultiCycleControlSignals generate(const DecodedInstruction& instruction) const noexcept {
@@ -194,7 +194,7 @@ public:
     }
 
     /*
-     Computes the next state transition based on current state and instruction.
+     Computes the next state transition based on current state and instruction
      */
     void update_next_state(const DecodedInstruction& instruction) noexcept {
         switch (current_state_) {
@@ -275,14 +275,14 @@ public:
     }
 
     /*
-      Clocks the FSM, advancing currentState to nextState.
+      Clocks the FSM, advancing currentState to nextState
      */
     void clock() noexcept {
         current_state_ = next_state_;
     }
 
     /*
-    brief Computes next state logic and advances the clock in one step.
+    Computes next state logic and advances the clock in one step
      */
     void step(const DecodedInstruction& instruction) noexcept {
         update_next_state(instruction);
