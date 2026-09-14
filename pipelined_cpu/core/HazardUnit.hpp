@@ -1,5 +1,5 @@
 /*
-    HazardUnit.hpp
+
 
     Hazard Detection and Forwarding Unit for the 5-Stage Pipelined Processor
     based on the ARM pipeline architecture 
