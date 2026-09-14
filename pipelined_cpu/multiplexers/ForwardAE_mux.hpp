@@ -1,5 +1,4 @@
 /*
-    ForwardAE_mux.hpp
 
     3:1 Forwarding Multiplexer for ALU Operand A in the Execute (EX) stage.
     Selects between:
