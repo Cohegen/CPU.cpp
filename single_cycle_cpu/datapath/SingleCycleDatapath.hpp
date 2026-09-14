@@ -115,7 +115,7 @@ namespace cpu{
                               logic::LogicState::LOW
                           );
 
-                  // PC enabled by default for now
+                  // PC enabled by default
                         pc_enable_.write(
                          logic::LogicState::HIGH
                         );
@@ -253,7 +253,7 @@ namespace cpu{
                       next_pc_select ? logic::LogicState::HIGH : logic::LogicState::LOW
                   );
 
-                // Generate PC + 1 from the current PC.
+                // Generate PC + 1 from the current PC
                 pc_adder_.evaluate();
 
                 //selecting next PC state
