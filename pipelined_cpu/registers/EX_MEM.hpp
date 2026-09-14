@@ -29,7 +29,7 @@ namespace cpu {
             reset_(reset),
             enable_(enable),
 
-            // Data muxes & registers
+            // Data muxes and registers
             enable_mux_alu_result_(ALUResult_out_, ALUResult_, enable_, enable_out_alu_result_),
             reset_mux_alu_result_(enable_out_alu_result_, zero_alu_result_, reset_, alu_result_reg_in_),
             ALUResult_reg_(alu_result_reg_in_, clock_, ALUResult_out_),
@@ -42,7 +42,7 @@ namespace cpu {
             reset_mux_rd_(enable_out_rd_, zero_rd_, reset_, rd_reg_in_),
             rd_reg_(rd_reg_in_, clock_, rd_out_),
 
-            // Control muxes & registers
+            // Control muxes and registers
             enable_mux_branch_(branch_out_, branch_in_, enable_, enable_out_branch_),
             reset_mux_branch_(enable_out_branch_, zero_1_, reset_, branch_reg_in_),
             branch_reg_(branch_reg_in_, clock_, branch_out_),
