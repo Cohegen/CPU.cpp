@@ -152,7 +152,7 @@ public:
     }
 
     /**
-     * @brief Resets the CPU and FSM to initial state.
+     Resets the CPU and FSM to initial state.
      */
     void reset() noexcept
     {
@@ -167,7 +167,7 @@ public:
     }
 
     /*
-     Executes a single clock cycle using the autonomous FSM control unit.
+     Executes a single clock cycle using the autonomous FSM control unit
      */
     void step_cycle() noexcept
     {
@@ -177,7 +177,7 @@ public:
     }
 
     /*
-    brief Executes cycles autonomously until an instruction completes (returns to FETCH) or CPU halts.
+    Executes cycles autonomously until an instruction completes (returns to FETCH) or CPU halts
      */
     void step_instruction() noexcept
     {
@@ -190,7 +190,7 @@ public:
     }
 
     /*
-     Runs instructions autonomously until the CPU halts or max_cycles is reached.
+     Runs instructions autonomously until the CPU halts or max_cycles is reached
      */
     void run(std::size_t max_cycles = 100000) noexcept
     {
