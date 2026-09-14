@@ -1,7 +1,5 @@
 /*
-    ControlUnit.hpp
-
-    Combinational Control Unit for the Pipelined CPU.
+  Combinational Control Unit for the Pipelined CPU.
     Translates decoded ISA instructions into PipelinedControlSignals.
 */
 
