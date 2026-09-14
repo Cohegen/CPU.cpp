@@ -1,5 +1,5 @@
 /*
-    PipelinedDatapath.hpp
+    
 
     An implementation of a 5-stage pipelined processor datapath (IF, ID, EX, MEM, WB)
     based on the ARM architecture pipeline schematic (Harris & Harris).
@@ -235,19 +235,19 @@ public:
     void evaluate() noexcept override {
         clock_signal_.write(clock_.state());
 
-        // 1. Writeback stage evaluation
+        //Writeback stage evaluation
         mem_to_reg_w_wire_.write(mem_wb_.mem_to_reg() ? logic::LogicState::HIGH : logic::LogicState::LOW);
         reg_write_w_wire_.write(mem_wb_.reg_write() ? logic::LogicState::HIGH : logic::LogicState::LOW);
         rd_address_w_.write_value(mem_wb_.rd().read_value());
         writeback_mux_.evaluate();
 
-        // Check if R15 (PC in ARM) was written in WB stage
+        // Checking if R15 (PC in ARM) was written in WB stage
         const bool r15_written = mem_wb_.reg_write() && (mem_wb_.rd().read_value() == 15);
         pc_src_w_.write(r15_written ? logic::LogicState::HIGH : logic::LogicState::LOW);
 
         register_file_.evaluate();
 
-        // 2. Memory stage evaluation
+        //Memory stage evaluation
         mem_read_m_wire_.write(ex_mem_.mem_read() ? logic::LogicState::HIGH : logic::LogicState::LOW);
         mem_write_m_wire_.write(ex_mem_.mem_write() ? logic::LogicState::HIGH : logic::LogicState::LOW);
         reg_write_m_wire_.write(ex_mem_.reg_write() ? logic::LogicState::HIGH : logic::LogicState::LOW);
@@ -257,7 +257,7 @@ public:
         }
         data_mem_.evaluate();
 
-        // 3. Decode stage evaluation (decode current IF/ID instruction to drive RA1D, RA2D for HazardUnit)
+        //Decode stage evaluation (decodinh current IF/ID instruction to drive RA1D, RA2D for HazardUnit)
         Instruction instruction_word(static_cast<std::uint32_t>(if_id_.instruction().read_value()));
         decoded_instruction_ = InstructionDecoder::decode(instruction_word);
         control_signals_d_ = PipelinedControlUnit::generate(decoded_instruction_);
@@ -269,7 +269,7 @@ public:
 
         register_file_.evaluate();
 
-        // 4. Execute stage & Hazard evaluation
+        //Execute stage & Hazard evaluation
         mem_to_reg_e_wire_.write(id_ex_.mem_to_reg() ? logic::LogicState::HIGH : logic::LogicState::LOW);
 
         // Run hazard detection for forwarding and load-use stalls
@@ -305,7 +305,7 @@ public:
         // Re-evaluate hazard unit with branch status
         hazard_unit_.evaluate();
 
-        // Update pipeline control lines
+        // Updating pipeline control lines
         pc_enable_.write(stall_f_.read() == logic::LogicState::LOW ? logic::LogicState::HIGH : logic::LogicState::LOW);
         if_id_enable_.write(stall_d_.read() == logic::LogicState::LOW ? logic::LogicState::HIGH : logic::LogicState::LOW);
         if_id_reset_.write((reset_.read() == logic::LogicState::HIGH || flush_d_.read() == logic::LogicState::HIGH)
@@ -313,7 +313,7 @@ public:
         id_ex_reset_.write((reset_.read() == logic::LogicState::HIGH || flush_e_.read() == logic::LogicState::HIGH)
                                ? logic::LogicState::HIGH : logic::LogicState::LOW);
 
-        // 5. Fetch stage evaluation
+        //Fetch stage evaluation
         pc_adder_.evaluate();
         pc_branch_mux_.evaluate();
         pc_wb_mux_.evaluate();
@@ -379,7 +379,7 @@ public:
         instruction_mem_.load(widened);
     }
 
-    /// Testing & inspection methods
+    /// Testing and inspection methods
     void write_register_for_test(cpu::Register destination, std::uint32_t value) noexcept {
         rd_address_w_.write_value(static_cast<std::size_t>(destination));
         result_w_.write_value(value);
