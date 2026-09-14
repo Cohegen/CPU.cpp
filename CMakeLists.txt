@@ -224,4 +224,16 @@ target_link_libraries(test_pipelined_datapath
 
 add_test(NAME test_pipelined_datapath COMMAND test_pipelined_datapath)
 
+add_executable(test_cpu_wrappers
+    tests/test_cpu_wrappers.cpp
+    src/InstructionDecoder.cpp
+)
+
+target_link_libraries(test_cpu_wrappers
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_cpu_wrappers COMMAND test_cpu_wrappers)
+
 

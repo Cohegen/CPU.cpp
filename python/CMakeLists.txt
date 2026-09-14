@@ -43,7 +43,10 @@ target_include_directories(_pycpu_core PRIVATE
     ${CPU_ROOT}/components
     ${CPU_ROOT}/single_cycle_cpu
     ${CPU_ROOT}/single_cycle_cpu/datapath
+    ${CPU_ROOT}/multi_cycle_cpu
+    ${CPU_ROOT}/multi_cycle_cpu/datapath
     ${CPU_ROOT}/pipelined_cpu
+    ${CPU_ROOT}/pipelined_cpu/datapath
 )
 
 target_link_libraries(_pycpu_core PRIVATE

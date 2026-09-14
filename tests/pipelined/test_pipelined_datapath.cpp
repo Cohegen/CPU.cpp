@@ -336,6 +336,38 @@ void test_branch_and_flush() {
     std::cout << "  [PASS] Branch taken and pipeline flushed correctly (R3 = 0, R4 = 0, R5 = 10).\n";
 }
 
+// Test 8: Autonomous run with HALT instruction
+void test_autonomous_halt_run() {
+    std::cout << "[Test 8] Testing autonomous run() with HALT instruction...\n";
+    logic::Clock clock;
+    logic::Wire reset(logic::LogicState::LOW);
+    PipelinedDatapath datapath(clock, reset);
+
+    // Program:
+    // 0: ADDI R1, R0, 15    (R1 = 15)
+    // 1: ADDI R2, R0, 25    (R2 = 25)
+    // 2: ADD  R3, R1, R2    (R3 = 15 + 25 = 40)
+    // 3: SUB  R4, R3, R1    (R4 = 40 - 15 = 25)
+    // 4: HALT
+    std::vector<std::uint32_t> program = {
+        encode_i_type(cpu::Opcode::ADDI, cpu::Register::R1, cpu::Register::R0, 15),
+        encode_i_type(cpu::Opcode::ADDI, cpu::Register::R2, cpu::Register::R0, 25),
+        encode_r_type(cpu::Opcode::ADD,  cpu::Register::R3, cpu::Register::R1, cpu::Register::R2),
+        encode_r_type(cpu::Opcode::SUB,  cpu::Register::R4, cpu::Register::R3, cpu::Register::R1),
+        encode_i_type(cpu::Opcode::HALT, cpu::Register::R0, cpu::Register::R0, 0)
+    };
+    datapath.load_instructions(program);
+
+    datapath.run();
+
+    assert(datapath.halted());
+    assert(datapath.read_register_for_test(cpu::Register::R1) == 15);
+    assert(datapath.read_register_for_test(cpu::Register::R2) == 25);
+    assert(datapath.read_register_for_test(cpu::Register::R3) == 40);
+    assert(datapath.read_register_for_test(cpu::Register::R4) == 25);
+    std::cout << "  [PASS] Autonomous run to HALT passed successfully with correct register values.\n";
+}
+
 } // namespace
 
 int main() {
@@ -350,6 +382,7 @@ int main() {
     test_forward_be_forwarding();
     test_load_use_hazard_stall();
     test_branch_and_flush();
+    test_autonomous_halt_run();
 
     std::cout << "====================================================\n";
     std::cout << "   ALL PIPELINED DATAPATH TESTS PASSED SUCCESSFULLY!\n";

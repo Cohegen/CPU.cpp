@@ -121,6 +121,8 @@ public:
         result_w_{},
         reg_write_w_wire_(logic::LogicState::LOW),
         mem_to_reg_w_wire_(logic::LogicState::LOW),
+        wb_opcode_(Opcode::NOP),
+        mem_opcode_(Opcode::NOP),
         ex_opcode_(Opcode::NOP),
         id_opcode_(Opcode::NOP),
 
@@ -269,7 +271,18 @@ public:
 
         register_file_.evaluate();
 
-        //Execute stage & Hazard evaluation
+        // Register File write-before-read bypass (WB-to-ID forwarding)
+        // Resolves hazard when WB stage writes to a register that ID stage is reading in the same cycle
+        const bool wb_writing = (reg_write_w_wire_.read() == logic::LogicState::HIGH);
+        const auto wb_dest = rd_address_w_.read_value();
+        if (wb_writing && (wb_dest == rs1_address_d_.read_value())) {
+            rd1_data_d_.write_value(result_w_.read_value());
+        }
+        if (wb_writing && (wb_dest == rs2_address_d_.read_value())) {
+            rd2_data_d_.write_value(result_w_.read_value());
+        }
+
+        // Execute stage & Hazard evaluation
         mem_to_reg_e_wire_.write(id_ex_.mem_to_reg() ? logic::LogicState::HIGH : logic::LogicState::LOW);
 
         // Run hazard detection for forwarding and load-use stalls
@@ -305,8 +318,10 @@ public:
         // Re-evaluate hazard unit with branch status
         hazard_unit_.evaluate();
 
-        // Updating pipeline control lines
-        pc_enable_.write(stall_f_.read() == logic::LogicState::LOW ? logic::LogicState::HIGH : logic::LogicState::LOW);
+        // Update pipeline control lines
+        const bool halt_fetched = (decoded_instruction_.opcode == Opcode::HALT || id_opcode_ == Opcode::HALT || ex_opcode_ == Opcode::HALT || mem_opcode_ == Opcode::HALT || wb_opcode_ == Opcode::HALT);
+        const bool pc_en = !halt_fetched && (stall_f_.read() == logic::LogicState::LOW);
+        pc_enable_.write(pc_en ? logic::LogicState::HIGH : logic::LogicState::LOW);
         if_id_enable_.write(stall_d_.read() == logic::LogicState::LOW ? logic::LogicState::HIGH : logic::LogicState::LOW);
         if_id_reset_.write((reset_.read() == logic::LogicState::HIGH || flush_d_.read() == logic::LogicState::HIGH)
                                ? logic::LogicState::HIGH : logic::LogicState::LOW);
@@ -341,6 +356,10 @@ public:
 
     /// Advances the processor by one complete clock cycle.
     void step() noexcept {
+        if (halted()) {
+            return;
+        }
+
         // Setup phase: Clock LOW
         clock_signal_.write(logic::LogicState::LOW);
         evaluate();
@@ -356,6 +375,8 @@ public:
         evaluate();
 
         // Update instruction opcodes across pipeline stages
+        wb_opcode_ = mem_opcode_;
+        mem_opcode_ = ex_opcode_;
         if (flush_e_.read() == logic::LogicState::HIGH) {
             ex_opcode_ = Opcode::NOP;
         } else {
@@ -366,6 +387,34 @@ public:
             id_opcode_ = Opcode::NOP;
         } else if (stall_d_.read() == logic::LogicState::LOW) {
             id_opcode_ = decoded_instruction_.opcode;
+        }
+    }
+
+    /// Resets the processor and all pipeline stage registers.
+    void reset() noexcept {
+        reset_.write(logic::LogicState::HIGH);
+        clock_signal_.write(logic::LogicState::LOW);
+        evaluate();
+        clock_.tick();
+        clock_signal_.write(logic::LogicState::HIGH);
+        evaluate();
+        clock_.tick();
+        clock_signal_.write(logic::LogicState::LOW);
+        reset_.write(logic::LogicState::LOW);
+        evaluate();
+
+        id_opcode_ = Opcode::NOP;
+        ex_opcode_ = Opcode::NOP;
+        mem_opcode_ = Opcode::NOP;
+        wb_opcode_ = Opcode::NOP;
+    }
+
+    /// Runs autonomous execution until the pipeline halts or max_cycles is reached.
+    void run(std::size_t max_cycles = 100000) noexcept {
+        std::size_t c = 0;
+        while (!halted() && c < max_cycles) {
+            step();
+            ++c;
         }
     }
 
@@ -441,6 +490,12 @@ public:
     [[nodiscard]] const InstructionMemory<AddressWidth, InstructionMemoryAddressWidth, InstructionWidth>& instruction_memory() const noexcept {
         return instruction_mem_;
     }
+
+    [[nodiscard]] Opcode id_opcode() const noexcept { return id_opcode_; }
+    [[nodiscard]] Opcode ex_opcode() const noexcept { return ex_opcode_; }
+    [[nodiscard]] Opcode mem_opcode() const noexcept { return mem_opcode_; }
+    [[nodiscard]] Opcode wb_opcode() const noexcept { return wb_opcode_; }
+    [[nodiscard]] bool halted() const noexcept { return wb_opcode_ == Opcode::HALT; }
 
 private:
     // External signals
@@ -526,6 +581,8 @@ private:
     logic::Wire mem_to_reg_w_wire_;
 
     // Internal tracking of opcodes
+    Opcode wb_opcode_;
+    Opcode mem_opcode_;
     Opcode ex_opcode_;
     Opcode id_opcode_;
 

@@ -3,6 +3,9 @@
 
 #include "include/isa/Opcode.hpp"
 #include "include/isa/Registers.hpp"
+#include "components/SingleCycleCPU.hpp"
+#include "components/MultiCycleCPU.hpp"
+#include "components/PipelinedCPU.hpp"
 #include "components/CPU.hpp"
 
 namespace py = pybind11;
@@ -40,6 +43,20 @@ std::uint32_t encode_b(cpu::Opcode op, cpu::Register rs1, cpu::Register rs2, std
 std::uint32_t encode_j(cpu::Opcode op, std::int32_t imm) {
     return (static_cast<std::uint32_t>(op) << 26) |
            (static_cast<std::uint32_t>(imm) & 0x03FFFFFFU);
+}
+
+template <typename CPUType, typename PyClass>
+void bind_cpu_interface(PyClass& cls) {
+    cls.def(py::init<>())
+       .def("reset", &CPUType::reset)
+       .def("step", &CPUType::step)
+       .def("run", &CPUType::run, py::arg("max_cycles") = 100000)
+       .def("halted", &CPUType::halted)
+       .def("load_program", [](CPUType& cpu, const std::vector<std::size_t>& p) { cpu.load_program(p); })
+       .def("read_register", &CPUType::read_register)
+       .def("write_register", &CPUType::write_register)
+       .def("pc", &CPUType::pc)
+       .def("cycles", &CPUType::cycles);
 }
 
 } // namespace
@@ -93,17 +110,22 @@ PYBIND11_MODULE(_pycpu_core, m) {
     m.def("encode_b_type", &encode_b, "Encode a B-type instruction word");
     m.def("encode_j_type", &encode_j, "Encode a J-type instruction word");
 
-    // NativeCPU32
-    using CPU32 = cpu::CPU<32, 32, 32, 4, 8, 8>;
-    py::class_<CPU32>(m, "NativeCPU32")
-        .def(py::init<>())
-        .def("reset", &CPU32::reset)
-        .def("step", &CPU32::step)
-        .def("run", &CPU32::run, py::arg("max_cycles") = 100000)
-        .def("halted", &CPU32::halted)
-        .def("load_program", &CPU32::load_program)
-        .def("read_register", &CPU32::read_register)
-        .def("write_register", &CPU32::write_register)
-        .def("pc", &CPU32::pc)
-        .def("cycles", &CPU32::cycles);
+    // NativeSingleCycleCPU32 (and backward-compatible NativeCPU32)
+    using SingleCycleCPU32 = cpu::SingleCycleCPU<32, 32, 32, 4, 8, 8>;
+    py::class_<SingleCycleCPU32> single_cycle_cls(m, "NativeSingleCycleCPU32");
+    bind_cpu_interface<SingleCycleCPU32>(single_cycle_cls);
+
+    // Backward compatibility alias for NativeCPU32
+    m.attr("NativeCPU32") = single_cycle_cls;
+
+    // NativeMultiCycleCPU32
+    using MultiCycleCPU32 = cpu::MultiCycleCPU<32, 32, 32, 4, 8>;
+    py::class_<MultiCycleCPU32> multi_cycle_cls(m, "NativeMultiCycleCPU32");
+    bind_cpu_interface<MultiCycleCPU32>(multi_cycle_cls);
+    multi_cycle_cls.def("step_instruction", &MultiCycleCPU32::step_instruction);
+
+    // NativePipelinedCPU32
+    using PipelinedCPU32 = cpu::PipelinedCPU<32, 32, 32, 4, 8, 8>;
+    py::class_<PipelinedCPU32> pipelined_cls(m, "NativePipelinedCPU32");
+    bind_cpu_interface<PipelinedCPU32>(pipelined_cls);
 }
