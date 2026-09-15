@@ -451,6 +451,29 @@ public:
         return static_cast<std::uint32_t>(rd1_data_d_.read_value());
     }
 
+    [[nodiscard]]
+    std::uint32_t read_memory_for_test(std::size_t address) noexcept {
+        data_mem_address_.write_value(address);
+        mem_read_m_wire_.write(logic::LogicState::HIGH);
+        mem_write_m_wire_.write(logic::LogicState::LOW);
+        data_mem_.evaluate();
+        return static_cast<std::uint32_t>(memory_read_data_m_.read_value());
+    }
+
+    void write_memory_for_test(std::size_t address, std::uint32_t value) noexcept {
+        data_mem_address_.write_value(address);
+        ex_mem_.read_data2().write_value(value);
+        mem_write_m_wire_.write(logic::LogicState::HIGH);
+        mem_read_m_wire_.write(logic::LogicState::LOW);
+        data_mem_.evaluate();
+        clock_.tick();
+        data_mem_.evaluate();
+        clock_.tick();
+        data_mem_.evaluate();
+        mem_write_m_wire_.write(logic::LogicState::LOW);
+        data_mem_.evaluate();
+    }
+
     // Accessors
     [[nodiscard]] logic::Bus<AddressWidth>& pc() noexcept { return pc_; }
     [[nodiscard]] const logic::Bus<AddressWidth>& pc() const noexcept { return pc_; }

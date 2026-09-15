@@ -425,6 +425,35 @@ namespace cpu{
                 );
             }
 
+            std::uint32_t read_memory_for_test(
+                std::size_t address
+            ) noexcept {
+                data_memory_address_.write_value(address);
+                memory_read_enable_.write(logic::LogicState::HIGH);
+                memory_write_enable_.write(logic::LogicState::LOW);
+                data_mem_.evaluate();
+                return static_cast<std::uint32_t>(
+                    memory_read_data_.read_value()
+                );
+            }
+
+            void write_memory_for_test(
+                std::size_t address,
+                std::uint32_t value
+            ) noexcept {
+                data_memory_address_.write_value(address);
+                rs2_data_.write_value(value);
+                memory_write_enable_.write(logic::LogicState::HIGH);
+                memory_read_enable_.write(logic::LogicState::LOW);
+                data_mem_.evaluate();
+                clock_.tick();
+                data_mem_.evaluate();
+                clock_.tick();
+                data_mem_.evaluate();
+                memory_write_enable_.write(logic::LogicState::LOW);
+                data_mem_.evaluate();
+            }
+
 
         private:
            //external signals

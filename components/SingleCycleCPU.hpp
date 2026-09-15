@@ -105,6 +105,15 @@ public:
     }
 
     [[nodiscard]]
+    std::uint32_t read_memory(std::size_t address) noexcept {
+        return datapath_.read_memory_for_test(address);
+    }
+
+    void write_memory(std::size_t address, std::uint32_t value) noexcept {
+        datapath_.write_memory_for_test(address, value);
+    }
+
+    [[nodiscard]]
     std::uint32_t pc() const noexcept {
         return static_cast<std::uint32_t>(datapath_.pc().read_value());
     }

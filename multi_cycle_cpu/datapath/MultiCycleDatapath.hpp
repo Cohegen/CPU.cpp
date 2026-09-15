@@ -359,6 +359,30 @@ public:
         return static_cast<std::uint32_t>(rs1_data_.read_value());
     }
 
+    std::uint32_t read_memory_for_test(std::size_t address) noexcept
+    {
+        memory_address_.write_value(address);
+        memory_read_enable_.write(logic::LogicState::HIGH);
+        memory_write_enable_.write(logic::LogicState::LOW);
+        memory_.evaluate();
+        return static_cast<std::uint32_t>(memory_read_data_.read_value());
+    }
+
+    void write_memory_for_test(std::size_t address, std::uint32_t value) noexcept
+    {
+        memory_address_.write_value(address);
+        memory_write_data_.write_value(value);
+        memory_write_enable_.write(logic::LogicState::HIGH);
+        memory_read_enable_.write(logic::LogicState::LOW);
+        memory_.evaluate();
+        clock_.tick();
+        memory_.evaluate();
+        clock_.tick();
+        memory_.evaluate();
+        memory_write_enable_.write(logic::LogicState::LOW);
+        memory_.evaluate();
+    }
+
 private:
     static logic::LogicState to_state(bool value) noexcept
     {

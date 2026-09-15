@@ -55,6 +55,8 @@ void bind_cpu_interface(PyClass& cls) {
        .def("load_program", [](CPUType& cpu, const std::vector<std::size_t>& p) { cpu.load_program(p); })
        .def("read_register", &CPUType::read_register)
        .def("write_register", &CPUType::write_register)
+       .def("read_memory", &CPUType::read_memory)
+       .def("write_memory", &CPUType::write_memory)
        .def("pc", &CPUType::pc)
        .def("cycles", &CPUType::cycles);
 }
