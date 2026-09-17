@@ -8,7 +8,7 @@ An autonomous 32-bit Multi-Cycle RISC Processor implementation featuring a Finit
 
 ## Overview
 
-Unlike the single-cycle design, the Multi-Cycle CPU breaks instruction execution into multiple shorter clock cycles. Functional units—such as the ALU and Memory—are reused across different cycles within the same instruction execution, significantly reducing hardware resource requirements and allowing a much faster clock frequency.
+Unlike the single-cycle design, the Multi-Cycle CPU breaks instruction execution into multiple shorter clock cycles. Functional units such as the ALU and Memory, are reused across different cycles within the same instruction execution, significantly reducing hardware resource requirements and allowing a much faster clock frequency.
 
 - **Instruction Width**: 32-bit
 - **Data Path Width**: 32-bit
