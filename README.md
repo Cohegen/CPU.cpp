@@ -5,4 +5,5 @@
 - And also modern CPU architectures like
   1. superscalar
   2. VLIW,
-  3. vector and array processors etc as I learn them in ETH Zurich's Digital Design and Computer Architecture course
+  3. vector and array processors
+  are being implemented
