@@ -8,7 +8,7 @@ A complete 32-bit Single-Cycle RISC Processor implementation based on Chapter 7 
 
 ## Overview
 
-The Single-Cycle CPU executes each instruction in a **single clock cycle**. Every instruction begins on a clock edge and completes all execution stages—Instruction Fetch, Decode, Register Read, ALU Operation, Memory Access, and Register Writeback—before the next clock edge arrives.
+The Single-Cycle CPU executes each instruction in a **single clock cycle**. Every instruction begins on a clock edge and completes all execution stages i.e Instruction Fetch, Decode, Register Read, ALU Operation, Memory Access, and Register Writeback, before the next clock edge arrives.
 
 - **Instruction Width**: 32-bit
 - **Data Path Width**: 32-bit
@@ -92,13 +92,4 @@ Although executed within one continuous clock period, the datapath logically flo
 
 ---
 
-## Advantages & Limitations
 
-### Advantages
-- **Simple Control**: Purely combinational control unit without state registers or microcode.
-- **Predictable Timing**: $CPI = 1.0$; instruction count directly equals clock cycles elapsed.
-- **No Hazards**: No data forwarding, pipeline stalls, or branch misprediction flushes required.
-
-### Limitations
-- **Long Clock Period**: The clock cycle must accommodate the slowest instruction (typically `LW`: Fetch -> Decode -> RegRead -> ALU -> Memory -> RegWrite), penalizing faster instructions like `ADD`.
-- **Hardware Redundancy**: Requires separate Instruction Memory and Data Memory (or dual-ported memory) plus dedicated adders for PC increment and branch target calculation.
