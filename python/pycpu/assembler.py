@@ -104,6 +104,18 @@ def assemble_instruction(
             imm = _parse_int(target_token)
         return encode_b_type(Opcode.BNE, rs, Register.R0, imm & 0x3FFFF)
 
+    # Pseudo-instruction: b target -> beq r0, r0, target
+    elif op == "B":
+        if len(args) != 1:
+            raise ValueError(f"b expects 1 operand (target), got {len(args)}: '{line}'")
+        target_token = args[0]
+        if target_token in symbols:
+            target_pc = symbols[target_token]
+            imm = target_pc - current_pc if architecture == "single_cycle" else target_pc - (current_pc + 1)
+        else:
+            imm = _parse_int(target_token)
+        return encode_b_type(Opcode.BEQ, Register.R0, Register.R0, imm & 0x3FFFF)
+
     elif op == "NOP":
         return encode_r_type(Opcode.NOP, Register.R0, Register.R0, Register.R0)
 

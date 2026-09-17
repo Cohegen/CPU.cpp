@@ -31,6 +31,7 @@ from ._pycpu_core import (
 
 from .cpu import CPU, RegisterAccessor, MemoryAccessor
 from .assembler import assemble, assemble_line
+from .benchmarks import Benchmark, BENCHMARKS, BenchmarkRunner, BenchmarkReport, ClockModel
 
 __all__ = [
     "CPU",
@@ -38,6 +39,11 @@ __all__ = [
     "MemoryAccessor",
     "assemble",
     "assemble_line",
+    "Benchmark",
+    "BENCHMARKS",
+    "BenchmarkRunner",
+    "BenchmarkReport",
+    "ClockModel",
     "Opcode",
     "Register",
     "NativeCPU32",
