@@ -29,12 +29,13 @@ from ._pycpu_core import (
     encode_j_type,
 )
 
-from .cpu import CPU, RegisterAccessor
+from .cpu import CPU, RegisterAccessor, MemoryAccessor
 from .assembler import assemble, assemble_line
 
 __all__ = [
     "CPU",
     "RegisterAccessor",
+    "MemoryAccessor",
     "assemble",
     "assemble_line",
     "Opcode",

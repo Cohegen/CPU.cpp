@@ -89,7 +89,7 @@ def assemble_instruction(
             imm = target_pc - current_pc if architecture == "single_cycle" else target_pc - (current_pc + 1)
         else:
             imm = _parse_int(target_token)
-        return encode_b_type(Opcode.BEQ, rs, Register.R0, imm)
+        return encode_b_type(Opcode.BEQ, rs, Register.R0, imm & 0x3FFFF)
 
     # Pseudo-instruction: bnez rs, target -> bne rs, r0, target
     elif op == "BNEZ":
@@ -102,7 +102,7 @@ def assemble_instruction(
             imm = target_pc - current_pc if architecture == "single_cycle" else target_pc - (current_pc + 1)
         else:
             imm = _parse_int(target_token)
-        return encode_b_type(Opcode.BNE, rs, Register.R0, imm)
+        return encode_b_type(Opcode.BNE, rs, Register.R0, imm & 0x3FFFF)
 
     elif op == "NOP":
         return encode_r_type(Opcode.NOP, Register.R0, Register.R0, Register.R0)
@@ -126,12 +126,12 @@ def assemble_instruction(
         rd = _parse_reg(args[0])
         rs1 = _parse_reg(args[1])
         imm = _parse_int(args[2])
-        return encode_i_type(Opcode.ADDI, rd, rs1, imm)
+        return encode_i_type(Opcode.ADDI, rd, rs1, imm & 0x3FFFF)
 
     elif op == "LI":
         rd = _parse_reg(args[0])
         imm = _parse_int(args[1])
-        return encode_i_type(Opcode.LI, rd, Register.R0, imm)
+        return encode_i_type(Opcode.LI, rd, Register.R0, imm & 0x3FFFF)
 
     elif op == "LW":
         rd = _parse_reg(args[0])
@@ -145,7 +145,7 @@ def assemble_instruction(
         else:
             rs1 = _parse_reg(args[1])
             imm = _parse_int(args[2]) if len(args) > 2 else 0
-        return encode_i_type(Opcode.LW, rd, rs1, imm)
+        return encode_i_type(Opcode.LW, rd, rs1, imm & 0x3FFFF)
 
     elif op == "SW":
         rs2 = _parse_reg(args[0])
@@ -159,7 +159,7 @@ def assemble_instruction(
         else:
             rs1 = _parse_reg(args[1])
             imm = _parse_int(args[2]) if len(args) > 2 else 0
-        return encode_s_type(Opcode.SW, rs2, rs1, imm)
+        return encode_s_type(Opcode.SW, rs2, rs1, imm & 0x3FFFF)
 
     elif op in ("BEQ", "BNE"):
         opcode = getattr(Opcode, op)
@@ -171,7 +171,7 @@ def assemble_instruction(
             imm = target_pc - current_pc if architecture == "single_cycle" else target_pc - (current_pc + 1)
         else:
             imm = _parse_int(target_token)
-        return encode_b_type(opcode, rs1, rs2, imm)
+        return encode_b_type(opcode, rs1, rs2, imm & 0x3FFFF)
 
     elif op == "J":
         target_token = args[0]
@@ -179,7 +179,7 @@ def assemble_instruction(
             imm = symbols[target_token]
         else:
             imm = _parse_int(target_token)
-        return encode_j_type(Opcode.J, imm)
+        return encode_j_type(Opcode.J, imm & 0x03FFFFFF)
 
     else:
         raise ValueError(f"Unknown instruction opcode: '{op}' in '{line}'")

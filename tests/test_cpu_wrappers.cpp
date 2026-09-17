@@ -109,6 +109,29 @@ void test_cpu_alias_backward_compatibility() {
     std::cout << "  [PASS] cpu::CPU alias functions identically to SingleCycleCPU.\n";
 }
 
+void test_memory_wrappers() {
+    std::cout << "[Test 5] Testing memory read and write across CPU wrappers...\n";
+    {
+        cpu::SingleCycleCPU cpu;
+        cpu.reset();
+        cpu.write_memory(0x80, 0x1234);
+        assert(cpu.read_memory(0x80) == 0x1234);
+    }
+    {
+        cpu::MultiCycleCPU cpu;
+        cpu.reset();
+        cpu.write_memory(0x80, 0x5678);
+        assert(cpu.read_memory(0x80) == 0x5678);
+    }
+    {
+        cpu::PipelinedCPU cpu;
+        cpu.reset();
+        cpu.write_memory(0x80, 0x9ABC);
+        assert(cpu.read_memory(0x80) == 0x9ABC);
+    }
+    std::cout << "  [PASS] Memory read/write verified on all CPU wrappers.\n";
+}
+
 } // namespace
 
 int main() {
@@ -120,6 +143,7 @@ int main() {
     test_multi_cycle_wrapper();
     test_pipelined_wrapper();
     test_cpu_alias_backward_compatibility();
+    test_memory_wrappers();
 
     std::cout << "====================================================\n";
     std::cout << "   ALL CPU WRAPPER TESTS PASSED SUCCESSFULLY!\n";

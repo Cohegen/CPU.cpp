@@ -157,6 +157,83 @@ class TestPyCPU(unittest.TestCase):
         self.assertEqual(info["architecture"], "pipelined")
         self.assertIn("registers", info)
         self.assertEqual(info["registers"]["r1"], 99)
+        self.assertIn("memory", info)
+
+    def test_assembler_pseudo_instructions(self):
+        words = assemble("""
+            mv   r1, r2
+            beqz r1, done
+            bnez r2, done
+        done:
+            halt
+        """)
+        self.assertEqual(len(words), 4)
+
+    def test_memory_accessor_and_methods(self):
+        for arch in ("single_cycle", "multi_cycle", "pipelined"):
+            cpu = CPU(architecture=arch)
+            cpu.reset()
+
+            # Test direct memory write & read
+            cpu.memory[0x80] = 0xBEEF
+            self.assertEqual(cpu.memory[0x80], 0xBEEF)
+            self.assertEqual(cpu.read_memory(0x80), 0xBEEF)
+
+            # Test load_data
+            cpu.load_data([100, 200, 300], start_address=0x84)
+            self.assertEqual(cpu.memory[0x84], 100)
+            self.assertEqual(cpu.memory[0x85], 200)
+            self.assertEqual(cpu.memory[0x86], 300)
+
+    def test_memory_load_store_assembly(self):
+        for arch in ("single_cycle", "multi_cycle", "pipelined"):
+            cpu = CPU(architecture=arch)
+            cpu.reset()
+
+            # R1 = base addr (0x80), R2 = value (42)
+            # Store 42 at 0x80, then load from 0x80 into R3
+            cpu.load_assembly("""
+                addi r1, r0, 128
+                addi r2, r0, 42
+                sw   r2, 0(r1)
+                lw   r3, 0(r1)
+                halt
+            """)
+            cpu.run()
+            self.assertTrue(cpu.is_halted)
+            self.assertEqual(cpu.registers["r2"], 42)
+            self.assertEqual(cpu.registers["r3"], 42)
+            self.assertEqual(cpu.memory[128], 42)
+
+    def test_loop_program_with_labels(self):
+        # Calculate sum of 1..5 = 15 using a loop with labels
+        asm = """
+            li   r1, 5       ; counter = 5
+            li   r2, 0       ; accumulator = 0
+        loop:
+            add  r2, r2, r1  ; acc += counter
+            addi r1, r1, -1  ; counter -= 1
+            bnez r1, loop    ; if counter != 0 goto loop
+            halt
+        """
+        for arch in ("single_cycle", "multi_cycle", "pipelined"):
+            cpu = CPU(architecture=arch)
+            cpu.reset()
+            cpu.load_assembly(asm)
+            cpu.run(max_cycles=1000)
+            self.assertTrue(cpu.is_halted, f"Arch {arch} did not halt")
+            self.assertEqual(cpu.registers["r1"], 0, f"Arch {arch} counter mismatch")
+            self.assertEqual(cpu.registers["r2"], 15, f"Arch {arch} sum mismatch")
+
+    def test_dump_state(self):
+        cpu = CPU()
+        cpu.reset()
+        cpu.registers["r1"] = 42
+        cpu.memory[0x80] = 999
+        dump = cpu.dump_state()
+        self.assertIn("=== CPU State", dump)
+        self.assertIn("r01: 0x0000002A (42)", dump)
+        self.assertIn("[0x80]:", dump)
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ class RegisterAccessor:
         key_str = str(key).strip().lower()
         if key_str in _REG_MAP:
             return _REG_MAP[key_str]
-        raise KeyError(f"Unknown register name: '{key}'. Valid names: r0-r15, x0-x15")
+        raise KeyError(f"Unknown register name: '{key}'. Valid names: r0-r15, x0-x15, zero")
 
     def __getitem__(self, key: Union[int, str, Register]) -> int:
         reg = self._resolve_reg(key)
@@ -41,6 +41,26 @@ class RegisterAccessor:
     def __repr__(self) -> str:
         items = [f"r{i}={self[i]}" for i in range(16) if self[i] != 0 or i < 4]
         return f"<Registers {', '.join(items)}>"
+
+
+class MemoryAccessor:
+    """Dictionary-like accessor for CPU data memory."""
+
+    def __init__(self, native_cpu: Any):
+        self._cpu = native_cpu
+
+    def __getitem__(self, address: int) -> int:
+        return self._cpu.read_memory(int(address))
+
+    def __setitem__(self, address: int, value: int):
+        self._cpu.write_memory(int(address), int(value) & 0xFFFFFFFF)
+
+    def to_dict(self, start: int = 0x80, count: int = 16) -> Dict[str, int]:
+        return {hex(addr): self[addr] for addr in range(start, start + count)}
+
+    def __repr__(self) -> str:
+        non_zero = {hex(addr): self[addr] for addr in range(0x80, 0xA0) if self[addr] != 0}
+        return f"<Memory {non_zero}>"
 
 
 class CPU:
@@ -71,6 +91,7 @@ class CPU:
             self._native = NativePipelinedCPU32()
 
         self.registers = RegisterAccessor(self._native)
+        self.memory = MemoryAccessor(self._native)
 
     @property
     def architecture(self) -> str:
@@ -126,13 +147,26 @@ class CPU:
             return 0.0
         return self.cycles / num_instructions
 
+    def read_memory(self, address: int) -> int:
+        """Reads a 32-bit word from data memory at address."""
+        return self._native.read_memory(address)
+
+    def write_memory(self, address: int, value: int):
+        """Writes a 32-bit word into data memory at address."""
+        self._native.write_memory(address, value)
+
+    def load_data(self, values: List[int], start_address: int = 0x80):
+        """Loads an array of 32-bit values into data memory starting at start_address."""
+        for i, val in enumerate(values):
+            self.write_memory(start_address + i, val)
+
     def load_program(self, instructions: List[int]):
         """Loads raw 32-bit machine instructions into instruction memory."""
         self._native.load_program(instructions)
 
     def load_assembly(self, asm_code: str) -> List[int]:
-        """Assembles and loads human-readable assembly instructions."""
-        words = assemble(asm_code)
+        """Assembles and loads human-readable assembly instructions with architecture-specific resolution."""
+        words = assemble(asm_code, architecture=self.architecture)
         self.load_program(words)
         return words
 
@@ -144,7 +178,36 @@ class CPU:
             "cycles": self.cycles,
             "halted": self.is_halted,
             "registers": self.registers.to_dict(),
+            "memory": self.memory.to_dict(),
         }
+
+    def dump_state(self) -> str:
+        """Returns a human-readable formatted string of the CPU state."""
+        lines = [
+            f"=== CPU State [{self.architecture}] ===",
+            f"PC: {self.pc} | Cycles: {self.cycles} | Halted: {self.is_halted}",
+            "--- Registers ---",
+        ]
+        reg_chunks = []
+        for i in range(16):
+            val = self.registers[i]
+            reg_chunks.append(f"r{i:02d}: 0x{val:08X} ({val})")
+            if len(reg_chunks) == 4:
+                lines.append("  " + " | ".join(reg_chunks))
+                reg_chunks = []
+        if reg_chunks:
+            lines.append("  " + " | ".join(reg_chunks))
+
+        non_zero_mem = [
+            (addr, self.read_memory(addr))
+            for addr in range(0x80, 0x100)
+            if self.read_memory(addr) != 0
+        ]
+        if non_zero_mem:
+            lines.append("--- RAM (Non-zero words in 0x80..0xFF) ---")
+            for addr, val in non_zero_mem:
+                lines.append(f"  [0x{addr:02X}]: 0x{val:08X} ({val})")
+        return "\n".join(lines)
 
     def __repr__(self) -> str:
         return (

@@ -319,8 +319,8 @@ public:
         hazard_unit_.evaluate();
 
         // Update pipeline control lines
-        const bool halt_fetched = (decoded_instruction_.opcode == Opcode::HALT || id_opcode_ == Opcode::HALT || ex_opcode_ == Opcode::HALT || mem_opcode_ == Opcode::HALT || wb_opcode_ == Opcode::HALT);
-        const bool pc_en = !halt_fetched && (stall_f_.read() == logic::LogicState::LOW);
+        const bool halt_fetched = !branch_taken && (decoded_instruction_.opcode == Opcode::HALT || id_opcode_ == Opcode::HALT || ex_opcode_ == Opcode::HALT || mem_opcode_ == Opcode::HALT || wb_opcode_ == Opcode::HALT);
+        const bool pc_en = (branch_taken || !halt_fetched) && (stall_f_.read() == logic::LogicState::LOW);
         pc_enable_.write(pc_en ? logic::LogicState::HIGH : logic::LogicState::LOW);
         if_id_enable_.write(stall_d_.read() == logic::LogicState::LOW ? logic::LogicState::HIGH : logic::LogicState::LOW);
         if_id_reset_.write((reset_.read() == logic::LogicState::HIGH || flush_d_.read() == logic::LogicState::HIGH)
@@ -368,6 +368,8 @@ public:
         // Capture phase: Clock HIGH (rising edge updates sequential registers)
         clock_signal_.write(logic::LogicState::HIGH);
         evaluate();
+        const bool flushed_e = (flush_e_.read() == logic::LogicState::HIGH);
+        const bool flushed_d = (flush_d_.read() == logic::LogicState::HIGH);
         clock_.tick();
 
         // Settle back to Clock LOW
@@ -377,13 +379,13 @@ public:
         // Update instruction opcodes across pipeline stages
         wb_opcode_ = mem_opcode_;
         mem_opcode_ = ex_opcode_;
-        if (flush_e_.read() == logic::LogicState::HIGH) {
+        if (flushed_e) {
             ex_opcode_ = Opcode::NOP;
         } else {
             ex_opcode_ = id_opcode_;
         }
 
-        if (flush_d_.read() == logic::LogicState::HIGH) {
+        if (flushed_d) {
             id_opcode_ = Opcode::NOP;
         } else if (stall_d_.read() == logic::LogicState::LOW) {
             id_opcode_ = decoded_instruction_.opcode;
