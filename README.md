@@ -20,5 +20,10 @@
 - Examples of them include:
     1. Vector : uses a single instruction to operate one-dimensional arrays of data i.e vectors using specialized, deeply pipelined vector registers.
     2. Array: uses a grid of multiple processing elements (PEs) that work in lockstep to manipulate to multiple multi-dimensional datasets simultaneously.
-   
-  
+
+# Project Status
+- Single-cycle, Multi-cycle and Pipelined are fully implemented while work on the rest is underway.
+
+# acknowledgement and Shoutouts
+1. Digital design and Computer Architecture  textbook by Harris & Harris.
+2. Digital Design and Computer Architecture course by ETH Zurich under Professor Onur Mutlu.
