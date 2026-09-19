@@ -236,4 +236,15 @@ target_link_libraries(test_cpu_wrappers
 
 add_test(NAME test_cpu_wrappers COMMAND test_cpu_wrappers)
 
+add_executable(test_cache_line
+    tests/superscalar/test_cache_line.cpp
+)
+
+target_link_libraries(test_cache_line
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_cache_line COMMAND test_cache_line)
+
 
