@@ -1,3 +1,5 @@
+![output:](processor.jfif)
+
 # Introduction to CPU.cpp
 - This project intends to implement various CPU microarchitecture designs and execution models.
 - The motivation of making this project, is to track and test my understanding in Computer Architecture and C++ programming as I learn them both.
