@@ -166,6 +166,27 @@ public:
     }
 
 
+    [[nodiscard]]
+    std::size_t line_base_address() const noexcept
+    {
+        return line_base_address_;
+    }
+
+
+    [[nodiscard]]
+    std::size_t refill_word() const noexcept
+    {
+        return refill_word_;
+    }
+
+
+    [[nodiscard]]
+    const std::array<std::size_t, InstructionsPerLine>& refill_buffer() const noexcept
+    {
+        return refill_buffer_;
+    }
+
+
 private:
 
     /*
@@ -238,8 +259,8 @@ private:
         converting a Logic Bus into a normal integer
     */
 
-    [[nodiscard]]
     template <std::size_t BusWidth>
+    [[nodiscard]]
     static std::size_t bus_to_value(
         const logic::Bus<BusWidth>& bus
     ) noexcept

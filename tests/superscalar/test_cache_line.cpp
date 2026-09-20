@@ -30,11 +30,11 @@ void test_address_splits_into_tag_index_offset() {
     static_assert(Cache::IndexBits == 4);
     static_assert(Cache::TagBits == 24);
 
-    // 0x00A12C08:
+    // 0x00A12CC8:
     //   offset bits [3:0]  = 0x8 -> instruction word 2
     //   index  bits [7:4]  = 0xC -> line 12
     //   tag    bits [31:8] = 0x00A12C
-    constexpr std::size_t address = 0x00A12C08;
+    constexpr std::size_t address = 0x00A12CC8;
 
     assert(Cache::get_instruction_offset(address) == 2);
     assert(Cache::get_line_index(address) == 0xC);

@@ -247,4 +247,15 @@ target_link_libraries(test_cache_line
 
 add_test(NAME test_cache_line COMMAND test_cache_line)
 
+add_executable(test_memory_refill_integration
+    tests/superscalar/test_memory_refill_integration.cpp
+)
+
+target_link_libraries(test_memory_refill_integration
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_memory_refill_integration COMMAND test_memory_refill_integration)
+
 
