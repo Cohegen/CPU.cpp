@@ -1,4 +1,4 @@
-![output:](processor.jfif)
+![output:](image.jfif)
 
 # Introduction to CPU.cpp
 - This project intends to implement various CPU microarchitecture designs and execution models.
