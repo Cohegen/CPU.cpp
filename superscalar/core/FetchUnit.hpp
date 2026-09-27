@@ -130,33 +130,33 @@ public:
         }
 
         /*
-         * 1. Update program counter register
+         1. Updating the program counter register
          */
         program_counter_.evaluate();
 
         /*
-         * 2. Calculate sequential address offsets:
-         *    Lane 1 = PC + 4
-         *    Next   = PC + 8
+         2. Calculating sequential address offsets:
+             Lane 1 = PC + 4
+            Next   = PC + 8
          */
         pc_plus_4_adder.evaluate();
         pc_plus_8_adder.evaluate();
 
         /*
-         * 3. Re-evaluate program counter combinational multiplexers so that
-         *    next_pc (PC + 8) is routed to register input for the next clock edge.
+          3. Re-evaluate program counter combinational multiplexers so that
+             next_pc (PC + 8) is routed to register input for the next clock edge.
          */
         program_counter_.evaluate();
 
         /*
-         * 4. Drive output address buses
+          4.Driving output address buses
          */
         copy_bus(pc_, pc0_);
         copy_bus(pc_plus_4_, pc1_);
         copy_bus(pc_plus_8_, next_pc_);
 
         /*
-         * 5. Derive valid signals: suppressed during reset, otherwise driven by cache hit status.
+         5. Deriving valid signals
          */
         if (reset_.read() == logic::LogicState::HIGH)
         {
@@ -401,23 +401,23 @@ private:
     logic::Wire* stall_wire_{nullptr};
 
     /*
-     * Architectural PC register bus
+     Architectural PC register bus
      */
     logic::Bus<CPUAddressWidth> pc_;
 
     /*
-     * Constants
+     Constants
      */
     logic::Bus<CPUAddressWidth> instruction_bytes_;
     logic::Bus<CPUAddressWidth> fetch_bytes_;
 
     /*
-     * PC enable control
+     PC enable control
      */
     logic::Wire pc_enable_;
 
     /*
-     * Adder buses & carry wires
+     Adder buses & carry wires
      */
     logic::Bus<CPUAddressWidth> pc_plus_4_;
     logic::Bus<CPUAddressWidth> pc_plus_8_;
@@ -428,12 +428,12 @@ private:
     logic::Wire pc_plus_8_carry_out_{logic::LogicState::LOW};
 
     /*
-     * Sequential ProgramCounter
+     Sequential ProgramCounter
      */
     ProgramCounter<CPUAddressWidth> program_counter_;
 
     /*
-     * Ripple carry adders
+     Ripple carry adders
      */
     logic::RippleCarryAdder<CPUAddressWidth> pc_plus_4_adder;
     logic::RippleCarryAdder<CPUAddressWidth> pc_plus_8_adder;
