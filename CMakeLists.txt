@@ -258,4 +258,25 @@ target_link_libraries(test_memory_refill_integration
 
 add_test(NAME test_memory_refill_integration COMMAND test_memory_refill_integration)
 
+add_executable(test_fetch_unit
+    tests/superscalar/test_fetch_unit.cpp
+)
+
+target_link_libraries(test_fetch_unit
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_fetch_unit COMMAND test_fetch_unit)
+
+add_executable(test_fetch_icache_integration
+    tests/superscalar/test_fetch_icache_integration.cpp
+)
+
+target_link_libraries(test_fetch_icache_integration
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_fetch_icache_integration COMMAND test_fetch_icache_integration)
 
