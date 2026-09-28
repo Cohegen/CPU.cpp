@@ -435,13 +435,7 @@ void test_continuous_program_stream_execution() {
     // Run until 16 instructions are fetched (8 dual bundles)
     while (fetched_stream.size() < 16 && total_cycles < 200)
     {
-        std::cout << "Cycle " << total_cycles
-                  << ": state=" << static_cast<int>(h.controller.state())
-                  << " stall=" << (h.stall.read() == logic::LogicState::HIGH ? 1 : 0)
-                  << " v0=" << (h.valid0.read() == logic::LogicState::HIGH ? 1 : 0)
-                  << " pc0=0x" << std::hex << h.pc0.read_value()
-                  << " instr0=0x" << h.instruction0.read_value()
-                  << std::dec << std::endl;
+        total_cycles++;
 
         if (h.stall.read() == logic::LogicState::HIGH)
         {
@@ -463,12 +457,6 @@ void test_continuous_program_stream_execution() {
         }
 
         h.clock_edge();
-    }
-
-    std::cout << "Fetched stream size: " << fetched_stream.size() << std::endl;
-    for (std::size_t i = 0; i < fetched_stream.size(); ++i) {
-        std::cout << "  [" << i << "] got: 0x" << std::hex << fetched_stream[i]
-                  << ", expected: 0x" << (i < rom.size() ? rom[i] : 0) << std::dec << std::endl;
     }
 
     assert(fetched_stream.size() == 16);
