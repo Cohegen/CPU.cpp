@@ -113,11 +113,11 @@ public:
 
     void evaluate() noexcept override
     {
-        // 1. Convert valid wire inputs to internal 1-bit buses
+        // 1.Converting valid wire inputs to internal 1-bit buses
         valid0_reg_input_[0].write(fetch_valid0_.read());
         valid1_reg_input_[0].write(fetch_valid1_.read());
 
-        // 2. Evaluate Lane 0 multiplexers
+        // 2. Evaluating Lane 0 multiplexers
         enable_mux_pc0_.evaluate();
         reset_mux_pc0_.evaluate();
         enable_mux_instr0_.evaluate();
@@ -125,7 +125,7 @@ public:
         enable_mux_valid0_.evaluate();
         reset_mux_valid0_.evaluate();
 
-        // 3. Evaluate Lane 1 multiplexers
+        // 3. Evaluating Lane 1 multiplexers
         enable_mux_pc1_.evaluate();
         reset_mux_pc1_.evaluate();
         enable_mux_instr1_.evaluate();
@@ -142,7 +142,7 @@ public:
         instruction1_reg_.evaluate();
         valid1_reg_.evaluate();
 
-        // 5. Drive decode outputs
+        // 5. Driving decode outputs
         copy_bus(pc0_reg_out_, decode_pc0_);
         copy_bus(instruction0_reg_out_, decode_instruction0_);
         decode_valid0_.write(valid0_reg_output_[0].read());
