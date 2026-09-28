@@ -280,3 +280,15 @@ target_link_libraries(test_fetch_icache_integration
 
 add_test(NAME test_fetch_icache_integration COMMAND test_fetch_icache_integration)
 
+add_executable(FetchDecodeRegisterTests
+    tests/superscalar/FetchDecodeRegisterTests.cpp
+)
+
+target_link_libraries(FetchDecodeRegisterTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME FetchDecodeRegisterTests COMMAND FetchDecodeRegisterTests)
+
+
