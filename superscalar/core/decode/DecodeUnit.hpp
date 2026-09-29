@@ -32,11 +32,9 @@ public:
     DecodeUnit() = default;
 
 
-    // ------------------------------------------------------------
+   
     // Decode one instruction
-    // ------------------------------------------------------------
-
-    [[nodiscard]]
+   [[nodiscard]]
     DecodeBundle decode(
         std::uint32_t pc,
         std::uint32_t raw_instruction,
@@ -76,11 +74,9 @@ public:
     }
 
 
-    // ------------------------------------------------------------
-    // Decode two instructions simultaneously
-    // ------------------------------------------------------------
-
-    void decode(
+ 
+    // Decodes two instructions simultaneously
+     void decode(
         std::uint32_t pc0,
         std::uint32_t instruction0,
         bool valid0,
@@ -109,11 +105,9 @@ public:
 
 private:
 
-    // ------------------------------------------------------------
-    // Determine instruction format
-    // ------------------------------------------------------------
-
-    static void determine_format(
+    
+    // Determines the instruction format
+   static void determine_format(
         Opcode opcode,
         InstructionFormat& format
     ) noexcept
@@ -162,11 +156,9 @@ private:
     }
 
 
-    // ------------------------------------------------------------
-    // Extract architectural operands
-    // ------------------------------------------------------------
-
-    static void extract_operands(
+   
+    // Extracting architectural operands
+   static void extract_operands(
         const Instruction& instruction,
         DecodeBundle& bundle
     ) noexcept
@@ -199,14 +191,7 @@ private:
 
             case InstructionFormat::S_TYPE:
             {
-                /*
-                 * S-type:
-                 *
-                 * [opcode][rs2][rs1][immediate]
-                 *          ↑     ↑
-                 *          rd()  rs1()
-                 */
-
+               
                 bundle.rd = Register::R0;
 
                 bundle.rs2 = instruction.rd();
@@ -220,13 +205,7 @@ private:
 
             case InstructionFormat::B_TYPE:
             {
-                /*
-                 * B-type:
-                 *
-                 * [opcode][rs1][rs2][immediate]
-                 *          ↑     ↑
-                 *          rd()  rs1()
-                 */
+                
 
                 bundle.rd = Register::R0;
 
@@ -256,9 +235,8 @@ private:
     }
 
 
-    // ------------------------------------------------------------
-    // Decode execution/control information
-    // ------------------------------------------------------------
+  
+    // Decoding the execution/control information
 
     static void decode_control(
         Opcode opcode,
@@ -267,20 +245,15 @@ private:
     {
         switch (opcode)
         {
-            // ----------------------------------------------------
+          
             // NOP
-            // ----------------------------------------------------
-
             case Opcode::NOP:
             {
                 break;
             }
 
 
-            // ----------------------------------------------------
             // R-type ALU operations
-            // ----------------------------------------------------
-
             case Opcode::ADD:
             {
                 bundle.alu_operation = ALUOperation::ADD;
@@ -359,17 +332,13 @@ private:
             }
 
 
-            // ----------------------------------------------------
+            
             // Immediate operations
-            // ----------------------------------------------------
-
             case Opcode::LI:
             {
                 /*
-                 * LI:
-                 *
-                 * rd = immediate
-                 */
+                Loading an immediate
+                */
 
                 bundle.alu_operation = ALUOperation::ADD;
 
@@ -385,7 +354,7 @@ private:
             case Opcode::ADDI:
             {
                 /*
-                 * rd = rs1 + immediate
+                  rd = rs1 + immediate
                  */
 
                 bundle.alu_operation = ALUOperation::ADD;
@@ -407,8 +376,8 @@ private:
             {
                 /*
                  * Effective address:
-                 *
-                 * rs1 + immediate
+                 
+                  rs1 + immediate
                  */
 
                 bundle.alu_operation = ALUOperation::ADD;
@@ -423,20 +392,18 @@ private:
             }
 
 
-            // ----------------------------------------------------
+   
             // Store
-            // ----------------------------------------------------
-
-            case Opcode::SW:
+           case Opcode::SW:
             {
                 /*
                  * Effective address:
-                 *
-                 * rs1 + immediate
-                 *
-                 * Data:
-                 *
-                 * rs2
+                
+                  rs1 + immediate
+                 
+                  Data:
+                 
+                  rs2
                  */
 
                 bundle.alu_operation = ALUOperation::ADD;
@@ -451,10 +418,8 @@ private:
             }
 
 
-            // ----------------------------------------------------
+         
             // Branches
-            // ----------------------------------------------------
-
             case Opcode::BEQ:
             {
                 bundle.alu_operation = ALUOperation::SUB;
@@ -485,10 +450,8 @@ private:
             }
 
 
-            // ----------------------------------------------------
+           
             // Jump
-            // ----------------------------------------------------
-
             case Opcode::J:
             {
                 bundle.register_write = false;
@@ -499,10 +462,8 @@ private:
             }
 
 
-            // ----------------------------------------------------
+          
             // Halt
-            // ----------------------------------------------------
-
             case Opcode::HALT:
             {
                 bundle.halt = true;
