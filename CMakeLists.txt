@@ -20,6 +20,14 @@ else()
     FetchContent_MakeAvailable(LogicCpp)
 endif()
 
+include_directories(
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/decode"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/fetch"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/memory"
+)
+
 add_executable(cpu_cpp
     src/main.cpp
 )
@@ -290,5 +298,17 @@ target_link_libraries(FetchDecodeRegisterTests
 )
 
 add_test(NAME FetchDecodeRegisterTests COMMAND FetchDecodeRegisterTests)
+
+add_executable(DecodeUnitTests
+    tests/superscalar/DecodeUnitTests.cpp
+)
+
+target_link_libraries(DecodeUnitTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME DecodeUnitTests COMMAND DecodeUnitTests)
+
 
 
