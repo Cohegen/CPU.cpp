@@ -26,6 +26,7 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/decode"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/fetch"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/memory"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/rename"
 )
 
 add_executable(cpu_cpp
@@ -309,6 +310,17 @@ target_link_libraries(DecodeUnitTests
 )
 
 add_test(NAME DecodeUnitTests COMMAND DecodeUnitTests)
+
+add_executable(RenameUnitTests
+    tests/superscalar/RenameUnitTests.cpp
+)
+
+target_link_libraries(RenameUnitTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME RenameUnitTests COMMAND RenameUnitTests)
 
 
 
