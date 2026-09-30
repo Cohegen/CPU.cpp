@@ -1,6 +1,15 @@
-#pragma  once
+#pragma once
 #include <cstdint>
-#include "../include/Opcode.hpp"
+#include <cstddef>
+
+#if __has_include("isa/Opcode.hpp")
+#include "isa/Opcode.hpp"
+#elif __has_include("Opcode.hpp")
+#include "Opcode.hpp"
+#else
+#include "../../../include/isa/Opcode.hpp"
+#endif
+
 #include "../rename/RenameBundle.hpp"
 #include "../decode/DecodeTypes.hpp"
 
@@ -35,11 +44,13 @@ namespace cpu {
         std::int32_t immediate{0};
 
         //execution control
+        ALUOperation alu_operation{ALUOperation::NONE};
         ALUOperation alu_operand{ALUOperation::NONE};
         OperandSource operand_a{OperandSource::NONE};
         OperandSource operand_b{OperandSource::NONE};
 
-        //memory
+        //register write & memory
+        bool register_write{false};
         bool memory_read{false};
         bool memory_write{false};
 

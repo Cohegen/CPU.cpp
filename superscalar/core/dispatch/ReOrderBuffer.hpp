@@ -43,7 +43,7 @@ namespace cpu
 
           //allocate an entry
           [[nodiscard]]
-          bool allocate(const RenameBundle& bundle,Index& index)noexcept
+          bool allocate(const RenameBundle& bundle, Index& index) noexcept
           {
             if(!bundle.valid)
             {
@@ -62,14 +62,13 @@ namespace cpu
             entry.instruction = bundle.instruction;
             entry.opcode = bundle.opcode;
 
-            //destianation
+            //destination
             entry.register_write = bundle.register_write;
             entry.physical_rd = bundle.physical_rd;
-
             entry.old_physical_rd = 0;
 
             //memory
-            entry.memory_read= bundle.memory_read;
+            entry.memory_read = bundle.memory_read;
             entry.memory_write = bundle.memory_write;
 
             //control flow 
@@ -85,9 +84,31 @@ namespace cpu
             return true;
           }
 
-        //marks instruction complete
-        void complete(Index index,std::uint32_t result)noexcept
-        {
+          [[nodiscard]]
+          bool allocate(const RenameBundle& bundle) noexcept
+          {
+            Index ignored = 0;
+            return allocate(bundle, ignored);
+          }
+
+          [[nodiscard]]
+          bool allocate(Index& index) noexcept
+          {
+            RenameBundle bundle{};
+            bundle.valid = true;
+            return allocate(bundle, index);
+          }
+
+          [[nodiscard]]
+          bool allocate() noexcept
+          {
+            Index ignored = 0;
+            return allocate(ignored);
+          }
+
+          //marks instruction complete
+          void complete(Index index, std::uint32_t result) noexcept
+          {
             if(index >= Capacity)
             {
                 return;
@@ -99,12 +120,17 @@ namespace cpu
             }
             entry.result = result;
             entry.completed = true;
-        }
+          }
 
-        //commits head entry
-        [[nodiscard]]
-        bool commit(Entry& committed_entry)noexcept
-        {
+          void complete(Index index) noexcept
+          {
+            complete(index, 0);
+          }
+
+          //commits head entry
+          [[nodiscard]]
+          bool commit(Entry& committed_entry) noexcept
+          {
             if(empty())
             {
                 return false;
@@ -123,69 +149,96 @@ namespace cpu
             head_ = increment(head_);
             --count_;
             return true;
-        }
+          }
 
-        //inspects head
-        [[nodiscard]]
-        const Entry* head() const noexcept
-        {
+          [[nodiscard]]
+          bool commit() noexcept
+          {
+            Entry ignored{};
+            return commit(ignored);
+          }
+
+          //inspects head
+          [[nodiscard]]
+          const Entry* head() const noexcept
+          {
             if(empty())
             {
                 return nullptr;
             }
             return &entries_[head_];
-        }
+          }
 
-        [[nodiscard]]
-        Entry* head() noexcept
-        {
+          [[nodiscard]]
+          Entry* head() noexcept
+          {
             if(empty())
             {
                 return nullptr;
             }
             return &entries_[head_];
-        }
+          }
 
-        //inspects entry by index
-        const Entry* entry(Index index)const noexcept
-        {
+          //inspects entry by index
+          const Entry* entry(Index index) const noexcept
+          {
             if(index >= Capacity)
             {
                 return nullptr;
             }
             return &entries_[index];
-        }
+          }
 
-        [[nodiscard]]
-        Entry* entry(Index index) noexcept
-        {
+          [[nodiscard]]
+          Entry* entry(Index index) noexcept
+          {
             if(index >= Capacity)
             {
                 return nullptr;
             }
             return &entries_[index];
-        }
+          }
 
-        //reset
-        void reset() noexcept
-        {
-            for(auto& entry:entries_)
+          [[nodiscard]]
+          const Entry& raw_entry(Index index) const noexcept
+          {
+            return entries_[index];
+          }
+
+          [[nodiscard]]
+          Index head_index() const noexcept
+          {
+            return head_;
+          }
+
+          [[nodiscard]]
+          Index tail_index() const noexcept
+          {
+            return tail_;
+          }
+
+          //reset
+          void reset() noexcept
+          {
+            for(auto& entry : entries_)
             {
                 entry = Entry{};
             }
-            head_=0;
-            tail_=0;
-            count_0;
-        }
+            head_ = 0;
+            tail_ = 0;
+            count_ = 0;
+          }
+
         private:
            [[nodiscard]]
-           static constexpr Index incrememt(Index index)noexcept
+           static constexpr Index increment(Index index) noexcept
            {
-             return (index +1) % Capacity;
+             return (index + 1) % Capacity;
            }
-           std::array<Entry,Capacity>entries_{};
+
+           std::array<Entry, Capacity> entries_{};
            Index head_{0};
            Index tail_{0};
            std::size_t count_{0};
-    }
+    };
 }
