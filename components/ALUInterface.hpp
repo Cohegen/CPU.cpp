@@ -104,6 +104,9 @@ namespace cpu{
 
             case ALUOperation::PASS_B:
                 return 0b111;
+
+            case ALUOperation::NONE:
+                return 0b000;
         }
 
         return 0b000;

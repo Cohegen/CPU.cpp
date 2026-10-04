@@ -22,6 +22,12 @@
 #include "DecodeBundle.hpp"
 #include "DecodeTypes.hpp"
 
+#if __has_include("isa/InstructionDecoder.hpp")
+#include "isa/InstructionDecoder.hpp"
+#else
+#include "../../../include/isa/InstructionDecoder.hpp"
+#endif
+
 namespace cpu
 {
 
@@ -53,17 +59,15 @@ public:
 
         Instruction instruction{raw_instruction};
 
-        bundle.opcode = instruction.opcode();
-
-        determine_format(
-            bundle.opcode,
-            bundle.format
-        );
-
-        extract_operands(
-            instruction,
-            bundle
-        );
+        // Instruction identity, format, field extraction, and immediate
+        // sign-extension are shared with every other CPU organization.
+        const DecodedInstruction decoded = InstructionDecoder::decode(instruction);
+        bundle.opcode = decoded.opcode;
+        bundle.format = decoded.format;
+        bundle.rd = decoded.rd;
+        bundle.rs1 = decoded.rs1;
+        bundle.rs2 = decoded.rs2;
+        bundle.immediate = decoded.immediate;
 
         decode_control(
             bundle.opcode,
@@ -105,138 +109,7 @@ public:
 
 private:
 
-    
-    // Determines the instruction format
-   static void determine_format(
-        Opcode opcode,
-        InstructionFormat& format
-    ) noexcept
-    {
-        switch (opcode)
-        {
-            case Opcode::ADD:
-            case Opcode::SUB:
-            case Opcode::AND:
-            case Opcode::OR:
-            case Opcode::XOR:
-            case Opcode::NOT:
-
-                format = InstructionFormat::R_TYPE;
-                break;
-
-
-            case Opcode::LI:
-            case Opcode::ADDI:
-            case Opcode::LW:
-            case Opcode::NOP:
-            case Opcode::HALT:
-
-                format = InstructionFormat::I_TYPE;
-                break;
-
-
-            case Opcode::SW:
-
-                format = InstructionFormat::S_TYPE;
-                break;
-
-
-            case Opcode::BEQ:
-            case Opcode::BNE:
-
-                format = InstructionFormat::B_TYPE;
-                break;
-
-
-            case Opcode::J:
-
-                format = InstructionFormat::J_TYPE;
-                break;
-        }
-    }
-
-
-   
-    // Extracting architectural operands
-   static void extract_operands(
-        const Instruction& instruction,
-        DecodeBundle& bundle
-    ) noexcept
-    {
-        switch (bundle.format)
-        {
-            case InstructionFormat::R_TYPE:
-            {
-                bundle.rd = instruction.rd();
-                bundle.rs1 = instruction.rs1();
-                bundle.rs2 = instruction.rs2();
-
-                bundle.immediate = 0;
-
-                break;
-            }
-
-
-            case InstructionFormat::I_TYPE:
-            {
-                bundle.rd = instruction.rd();
-                bundle.rs1 = instruction.rs1();
-                bundle.rs2 = Register::R0;
-
-                bundle.immediate = instruction.immediate();
-
-                break;
-            }
-
-
-            case InstructionFormat::S_TYPE:
-            {
-               
-                bundle.rd = Register::R0;
-
-                bundle.rs2 = instruction.rd();
-                bundle.rs1 = instruction.rs1();
-
-                bundle.immediate = instruction.immediate();
-
-                break;
-            }
-
-
-            case InstructionFormat::B_TYPE:
-            {
-                
-
-                bundle.rd = Register::R0;
-
-                bundle.rs1 = instruction.rd();
-                bundle.rs2 = instruction.rs1();
-
-                bundle.immediate = instruction.immediate();
-
-                break;
-            }
-
-
-            case InstructionFormat::J_TYPE:
-            {
-                bundle.rd = Register::R0;
-                bundle.rs1 = Register::R0;
-                bundle.rs2 = Register::R0;
-
-                bundle.immediate =
-                    extract_jump_immediate(
-                        instruction.raw()
-                    );
-
-                break;
-            }
-        }
-    }
-
-
-  
-    // Decoding the execution/control information
+    // Superscalar-specific control production follows the shared ISA decode.
 
     static void decode_control(
         Opcode opcode,
@@ -471,29 +344,6 @@ private:
                 break;
             }
         }
-    }
-
-
-    
-    // Extracting J-type 26-bit signed immediate
-
-    [[nodiscard]]
-    static std::int32_t extract_jump_immediate(
-        std::uint32_t raw
-    ) noexcept
-    {
-        constexpr std::uint32_t ImmediateMask = 0x03FFFFFFU;
-        constexpr std::uint32_t SignBit = 0x02000000U;
-
-        std::uint32_t immediate =
-            raw & ImmediateMask;
-
-        if ((immediate & SignBit) != 0)
-        {
-            immediate |= ~ImmediateMask;
-        }
-
-        return static_cast<std::int32_t>(immediate);
     }
 };
 

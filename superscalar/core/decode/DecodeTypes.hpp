@@ -1,17 +1,10 @@
 #pragma once
 
+
+#include "../../../components/ControlSignals.hpp"
+
 namespace cpu
 {
-    enum class ALUOperation{
-        NONE,
-        ADD,
-        SUB,
-        AND,
-        OR,
-        XOR,
-        NOT
-    };
-
     enum class OperandSource
     {
         NONE,

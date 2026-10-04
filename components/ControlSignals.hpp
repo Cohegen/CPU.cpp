@@ -12,7 +12,9 @@ enum class ALUOperation : std::uint8_t
     XOR,
     NOT,
     PASS_A,
-    PASS_B
+    PASS_B,
+    // A bubble or non-ALU operation.  Hardware drives a benign ADD encoding.
+    NONE
 };
 
 
@@ -36,4 +38,4 @@ struct ControlSignals {
     bool halt = false;
 };
 
-}
+}

@@ -27,6 +27,9 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/fetch"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/memory"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/rename"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/dispatch"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/issue"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/execution"
 )
 
 add_executable(cpu_cpp
@@ -343,6 +346,17 @@ target_link_libraries(IssueROBTests
 )
 
 add_test(NAME IssueROBTests COMMAND IssueROBTests)
+
+add_executable(ALUExecutionUnitTests
+    tests/superscalar/ALUExecutionUnitTests.cpp
+)
+
+target_link_libraries(ALUExecutionUnitTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME ALUExecutionUnitTests COMMAND ALUExecutionUnitTests)
 
 
 
