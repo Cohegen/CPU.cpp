@@ -65,7 +65,7 @@ namespace cpu
             //destination
             entry.register_write = bundle.register_write;
             entry.physical_rd = bundle.physical_rd;
-            entry.old_physical_rd = 0;
+            entry.old_physical_rd = bundle.old_physical_rd;
 
             //memory
             entry.memory_read = bundle.memory_read;

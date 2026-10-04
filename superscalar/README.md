@@ -32,6 +32,15 @@ host-language arithmetic or a second decoder.
   with defined inputs, outputs, reset, and clock/enable behavior as they are
   integrated into the top-level datapath.
 
+## Current Integer Execution Milestone
+
+`IntegerExecutionPipeline` closes the integer vertical slice for up to two
+ready ALU instructions per cycle: issue-queue selection, ALU execution,
+physical-register write-back, dependent wake-up, ROB completion, and ordered
+retirement. It intentionally defers branch recovery and load/store execution;
+those need their own recovery and memory-ordering paths before the complete
+core can run arbitrary programs.
+
 ---
 
 

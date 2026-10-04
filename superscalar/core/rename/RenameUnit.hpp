@@ -108,6 +108,7 @@ namespace cpu
             // Destination register renaming
             if (input.register_write)
             {
+                output.old_physical_rd = rat_.lookup(input.rd);
                 const PhysicalRegister new_physical_rd = free_list_.allocate();
                 if (new_physical_rd == PhysicalRegisterFreeList::INVALID_REGISTER)
                 {

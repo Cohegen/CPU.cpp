@@ -358,5 +358,16 @@ target_link_libraries(ALUExecutionUnitTests
 
 add_test(NAME ALUExecutionUnitTests COMMAND ALUExecutionUnitTests)
 
+add_executable(IntegerExecutionPipelineTests
+    tests/superscalar/IntegerExecutionPipelineTests.cpp
+)
+
+target_link_libraries(IntegerExecutionPipelineTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME IntegerExecutionPipelineTests COMMAND IntegerExecutionPipelineTests)
+
 
 

@@ -38,6 +38,9 @@ namespace cpu
         // Physical registers
         using PhysicalRegister = std::uint8_t;
         PhysicalRegister physical_rd{PhysicalRegisterFreeList::INVALID_REGISTER};
+        // Mapping replaced by physical_rd.  It is reclaimed only when this
+        // instruction retires from the ROB.
+        PhysicalRegister old_physical_rd{PhysicalRegisterFreeList::INVALID_REGISTER};
         PhysicalRegister physical_rs1{0};
         PhysicalRegister physical_rs2{0};
 
