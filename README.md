@@ -15,7 +15,7 @@
 - This model overlaps or executes multiple instructions at the same time to boost speed.
 - Examples of it include:
      1. Pipelined : it overlaps the execution of multiple instructions like an assembly line in say for example a factory. While one instruction is being executed, the next one is being decoded, and the one after that is being fetched.
-     2. Supersaclar : duplicates internal execution units i.e like having multiple ALUs to execute multiple instructions completely in parallel during a single clock cycle.
+     2. Superscalar : duplicates internal execution units i.e like having multiple ALUs to execute multiple instructions completely in parallel during a single clock cycle.
 
 ## 3. Data-Level Parallelism Models
 - This model is designed to crunch massive amounts of data by applying a single operation to large datasets simultaneously.
