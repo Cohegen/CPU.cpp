@@ -2,6 +2,7 @@
 #include "../../superscalar/core/rename/RegisterAliasTable.hpp"
 #include "../../superscalar/core/rename/PhysicalRegisterFreeList.hpp"
 #include "../../superscalar/core/rename/RenameBundle.hpp"
+#include "../../superscalar/core/issue/PhysicalRegisterFile.hpp"
 #include "../../superscalar/core/decode/DecodeBundle.hpp"
 #include "../../superscalar/core/decode/DecodeTypes.hpp"
 #include "../../include/isa/Opcode.hpp"
@@ -377,6 +378,32 @@ void test_register_write_false_does_not_allocate()
     std::cout << "  [PASS] Requirement 8: Instructions with register_write=false don't allocate a physical register.\n";
 }
 
+// ---------------------------------------------------------------------------
+// 9. Destination allocation marks the PRF register not-ready
+// ---------------------------------------------------------------------------
+void test_destination_allocated_in_prf()
+{
+    cpu::RegisterAliasTable rat(64);
+    cpu::PhysicalRegisterFreeList free_list(64, 16);
+    cpu::PhysicalRegisterFile<64> prf;
+    prf.reset();
+    prf.write(16, 99);
+    assert(prf.ready(16));
+
+    cpu::RenameUnit unit(rat, free_list, prf);
+
+    auto b = make_decode_bundle(true, cpu::Opcode::ADD, cpu::Register::R3, cpu::Register::R1, cpu::Register::R2, true);
+    cpu::RenameBundle out = unit.rename(b);
+
+    assert(out.valid);
+    assert(out.physical_rd == 16);
+    assert(rat.lookup(cpu::Register::R3) == 16);
+    assert(!prf.ready(16));
+    assert(prf.read(16) == 0);
+
+    std::cout << "  [PASS] Requirement 9: Rename allocates dest in PRF as not-ready.\n";
+}
+
 } // namespace
 
 int main()
@@ -393,7 +420,8 @@ int main()
     test_physical_register_exhaustion();
     test_invalid_decode_bundle_produces_bubble();
     test_register_write_false_does_not_allocate();
+    test_destination_allocated_in_prf();
 
-    std::cout << "\n[PASS] All 8 Superscalar Rename Unit tests passed successfully!\n";
+    std::cout << "\n[PASS] All 9 Superscalar Rename Unit tests passed successfully!\n";
     return 0;
 }

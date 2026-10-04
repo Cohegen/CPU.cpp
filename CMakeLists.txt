@@ -322,5 +322,27 @@ target_link_libraries(RenameUnitTests
 
 add_test(NAME RenameUnitTests COMMAND RenameUnitTests)
 
+add_executable(DispatchUnitTests
+    tests/superscalar/DispatchUnitTests.cpp
+)
+
+target_link_libraries(DispatchUnitTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME DispatchUnitTests COMMAND DispatchUnitTests)
+
+add_executable(IssueROBTests
+    tests/superscalar/IssueROBTests.cpp
+)
+
+target_link_libraries(IssueROBTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME IssueROBTests COMMAND IssueROBTests)
+
 
 

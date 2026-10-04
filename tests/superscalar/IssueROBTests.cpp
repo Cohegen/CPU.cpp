@@ -571,11 +571,12 @@ void test_full_subsystem_integration()
     // Architectural registers: 64 physical registers, 16 initially mapped (R0..R15 -> P0..P15)
     cpu::RegisterAliasTable rat(64);
     cpu::PhysicalRegisterFreeList free_list(64, 16);
-    cpu::RenameUnit rename_unit(rat, free_list);
 
     // Physical Register File (64 registers)
     cpu::PhysicalRegisterFile<64> rf;
     rf.reset();
+
+    cpu::RenameUnit rename_unit(rat, free_list, rf);
 
     // Architectural base registers initialized as ready
     for (std::uint8_t p = 0; p < 16; ++p)
@@ -602,11 +603,12 @@ void test_full_subsystem_integration()
     rename_unit.rename(d0, d1, r0, r1);
 
     // Verify Rename:
-    // I0 gets P16
+    // I0 gets P16, marked not-ready in the PRF at rename
     assert(r0.valid);
     assert(r0.physical_rs1 == 2); // R2 -> P2
     assert(r0.physical_rs2 == 3); // R3 -> P3
     assert(r0.physical_rd == 16);
+    assert(!rf.ready(16));
 
     // RAT: R1 -> P16
     assert(rat.lookup(cpu::Register::R1) == 16);

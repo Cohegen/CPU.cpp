@@ -4,12 +4,14 @@
 #include <cstdint>
 
 #include "../decode/DecodeBundle.hpp"
+#include "../issue/PhysicalRegisterFile.hpp"
 #include "PhysicalRegisterFreeList.hpp"
 #include "RegisterAliasTable.hpp"
 #include "RenameBundle.hpp"
 
 namespace cpu
 {
+    template<std::size_t PRFCount = 64>
     class RenameUnit
     {
     public:
@@ -17,7 +19,19 @@ namespace cpu
 
         RenameUnit(RegisterAliasTable& rat, PhysicalRegisterFreeList& free_list) noexcept
             : rat_(rat),
-              free_list_(free_list)
+              free_list_(free_list),
+              prf_(nullptr)
+        {
+        }
+
+        RenameUnit(
+            RegisterAliasTable& rat,
+            PhysicalRegisterFreeList& free_list,
+            PhysicalRegisterFile<PRFCount>& prf
+        ) noexcept
+            : rat_(rat),
+              free_list_(free_list),
+              prf_(&prf)
         {
         }
 
@@ -105,6 +119,12 @@ namespace cpu
                 }
 
                 output.physical_rd = new_physical_rd;
+
+                // Dest is in-flight: allocated in the PRF and not ready until writeback
+                if (prf_ != nullptr)
+                {
+                    prf_->allocate(new_physical_rd);
+                }
 
                 // Update RAT with new mapping
                 rat_.set(input.rd, new_physical_rd);
@@ -197,9 +217,28 @@ namespace cpu
             return free_list_;
         }
 
+        [[nodiscard]]
+        PhysicalRegisterFile<PRFCount>* prf() noexcept
+        {
+            return prf_;
+        }
+
+        [[nodiscard]]
+        const PhysicalRegisterFile<PRFCount>* prf() const noexcept
+        {
+            return prf_;
+        }
+
     private:
         RegisterAliasTable& rat_;
         PhysicalRegisterFreeList& free_list_;
+        PhysicalRegisterFile<PRFCount>* prf_{nullptr};
         bool stalled_{false};
     };
+
+    RenameUnit(RegisterAliasTable&, PhysicalRegisterFreeList&) -> RenameUnit<64>;
+
+    template<std::size_t PRFCount>
+    RenameUnit(RegisterAliasTable&, PhysicalRegisterFreeList&, PhysicalRegisterFile<PRFCount>&)
+        -> RenameUnit<PRFCount>;
 }

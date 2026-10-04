@@ -43,7 +43,6 @@ namespace cpu
 
             entry.immediate = bundle.immediate;
             entry.alu_operation = bundle.alu_operation;
-            entry.alu_operand = bundle.alu_operation;
             entry.operand_a = bundle.operand_a;
             entry.operand_b = bundle.operand_b;
 
@@ -106,11 +105,6 @@ namespace cpu
             if (!rob_.allocate(input, rob_index))
             {
                 return false;
-            }
-
-            if (prf_ != nullptr && input.register_write)
-            {
-                prf_->allocate(input.physical_rd);
             }
 
             if (issue_queue_ != nullptr)
