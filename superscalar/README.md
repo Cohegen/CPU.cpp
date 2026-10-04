@@ -15,15 +15,6 @@ Standard pipelining is constrained by a theoretical limit of at most 1 instructi
 - **Target IPC**: Up to **2.0 Instructions Per Cycle** ($CPI \approx 0.5$) for independent instruction streams.
 - **Dynamic Structural & Data Hazard Detection**: Hardware interlocks detect RAW dependencies between simultaneous instructions and stall individual issue slots when necessary.
 
-## Current Integer Execution Milestone
 
-`IntegerExecutionPipeline` closes the integer vertical slice for up to two
-ready ALU instructions per cycle: issue-queue selection, ALU execution,
-physical-register write-back, dependent wake-up, ROB completion, and ordered
-retirement. It intentionally defers branch recovery and load/store execution;
-those need their own recovery and memory-ordering paths before the complete
-core can run arbitrary programs.
-
----
 
 
