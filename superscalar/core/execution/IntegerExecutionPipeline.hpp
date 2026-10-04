@@ -17,9 +17,9 @@
 namespace cpu
 {
 
-// Executes up to two ready integer ALU operations each cycle.  Write-back
-// broadcasts values to the PRF and issue queue, then completes matching ROB
-// entries.  Retirement remains ordered at the ROB head.
+// Executes up to two ready integer ALU operations each cycle
+//Write-back broadcasts values to the PRF and issue queue then completes matching ROB entries
+//Retirement remains ordered at the ROB head
 template <std::size_t ROBCapacity = 16, std::size_t IQCapacity = 16,
           std::size_t PRFCount = 64, std::size_t DataWidth = 32>
 class IntegerExecutionPipeline
