@@ -80,8 +80,8 @@ IssueUnit::issue(IssueQueue<Capacity>& issue_queue)
         requests.push_back(request);
 
         /*
-         * Remove the entry after successfully creating the
-         * execution request.
+         Remove the entry after successfully creating the
+         execution request.
          */
         issue_queue.remove(entry);
     }
