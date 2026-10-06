@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #if __has_include("isa/Registers.hpp")
 #include "isa/Registers.hpp"
@@ -77,8 +78,32 @@ namespace cpu
             return table_;
         }
 
+        // Save current mapping state for later restore
+        void checkpoint() noexcept
+        {
+            checkpoints_.push_back(table_);
+        }
+
+        // Restore the most recently saved mapping state
+        void restore() noexcept
+        {
+            if (!checkpoints_.empty())
+            {
+                table_ = checkpoints_.back();
+                checkpoints_.pop_back();
+            }
+        }
+
+        // Returns number of saved checkpoints
+        [[nodiscard]]
+        std::size_t checkpoint_count() const noexcept
+        {
+            return checkpoints_.size();
+        }
+
     private:
         std::array<PhysicalRegister, ArchitecturalRegisterCount> table_{};
         std::size_t physical_reg_count_{64};
+        std::vector<std::array<PhysicalRegister, ArchitecturalRegisterCount>> checkpoints_;
     };
 }

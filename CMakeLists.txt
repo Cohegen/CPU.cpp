@@ -383,3 +383,15 @@ add_test(NAME BranchExecutionUnitTests COMMAND BranchExecutionUnitTests)
 
 
 
+
+# Register Alias Table tests
+add_executable(test_register_alias_table
+    tests/superscalar/RegisterAliasTableTests.cpp
+)
+
+target_link_libraries(test_register_alias_table
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_register_alias_table COMMAND test_register_alias_table)
