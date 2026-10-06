@@ -133,13 +133,13 @@ public:
 
     void evaluate() noexcept override
     {
-        // 1. Evaluate target address through RippleCarryAdder: target = PC + immediate
+        // Evaluating target address through RippleCarryAdder: target = PC + immediate
         target_adder_->evaluate();
 
-        // 2. Evaluate equality comparison through ALUInterface subtraction: rs1 - rs2
+        // Evaluating equality comparison through ALUInterface subtraction: rs1 - rs2
         alu_->evaluate();
 
-        // 3. Resolve condition
+        //  Resolving condition
         const bool is_zero = (zero_.read() == logic::LogicState::HIGH);
         switch (opcode_)
         {
@@ -166,7 +166,7 @@ public:
         fallthrough_pc_ = static_cast<std::uint32_t>(pc_.read_value()) + 4U;
         next_pc_ = actual_taken_ ? actual_target_ : fallthrough_pc_;
 
-        // 4. Verify prediction
+        // Verifying  if  prediction was correct or not
         if (predicted_taken_ != actual_taken_)
         {
             mispredicted_ = true;
