@@ -78,13 +78,13 @@ namespace cpu
             return table_;
         }
 
-        // Save current mapping state for later restore
+        // Saves current mapping state for later restore
         void checkpoint() noexcept
         {
             checkpoints_.push_back(table_);
         }
 
-        // Restore the most recently saved mapping state
+        // Restores the most recently saved mapping state
         void restore() noexcept
         {
             if (!checkpoints_.empty())
