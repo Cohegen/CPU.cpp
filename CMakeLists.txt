@@ -395,3 +395,16 @@ target_link_libraries(test_register_alias_table
 )
 
 add_test(NAME test_register_alias_table COMMAND test_register_alias_table)
+
+# Physical Register Free List Recovery tests
+add_executable(PhysicalRegisterFreeListRecoveryTests
+    tests/superscalar/PhysicalRegisterFreeListRecoveryTests.cpp
+)
+
+target_link_libraries(PhysicalRegisterFreeListRecoveryTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME PhysicalRegisterFreeListRecoveryTests COMMAND PhysicalRegisterFreeListRecoveryTests)
+
