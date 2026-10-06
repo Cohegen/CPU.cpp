@@ -698,6 +698,303 @@ void test_full_subsystem_integration()
     std::cout << "  [PASS] Section 7: Full subsystem integration test (Decode->Rename->Dispatch->ROB/IQ/PRF->Wakeup->Retire) passed!\n";
 }
 
+// ===========================================================================
+// 8. squash_younger_than() Tests
+// ===========================================================================
+
+// Helper: allocate one entry with a given PC and return its ROB index.
+static cpu::ReOrderBuffer<>::Index
+alloc_with_pc(cpu::ReOrderBuffer<>& rob, std::uint32_t pc)
+{
+    cpu::RenameBundle bundle{};
+    bundle.valid       = true;
+    bundle.pc          = pc;
+    bundle.register_write = false;
+    cpu::ReOrderBuffer<>::Index idx = 0;
+    assert(rob.allocate(bundle, idx));
+    return idx;
+}
+
+// ── Test 15 ─────────────────────────────────────────────────────────────────
+// ROB: [A][B][BRANCH]  – nothing younger than BRANCH → squashed must be empty.
+void test_squash_no_younger()
+{
+    cpu::ReOrderBuffer<> rob;
+    rob.reset();
+
+    constexpr std::uint32_t A_PC      = 0x1000;
+    constexpr std::uint32_t B_PC      = 0x1004;
+    constexpr std::uint32_t BRANCH_PC = 0x1008;
+
+    alloc_with_pc(rob, A_PC);
+    alloc_with_pc(rob, B_PC);
+    auto branch_index = alloc_with_pc(rob, BRANCH_PC);
+
+    assert(rob.size() == 3);
+
+    auto squashed = rob.squash_younger_than(branch_index);
+
+    assert(squashed.empty());
+    assert(rob.size() == 3);
+
+    // The branch entry itself must still be present and valid.
+    const auto* branch_entry = rob.entry(branch_index);
+    assert(branch_entry != nullptr);
+    assert(branch_entry->valid);
+    assert(branch_entry->pc == BRANCH_PC);
+
+    std::cout << "  [PASS] Test 15: squash_younger_than – no younger instructions leaves ROB intact.\n";
+}
+
+// ── Test 16 ─────────────────────────────────────────────────────────────────
+// ROB: [A][BRANCH][C]  – squash C only.
+void test_squash_one_instruction()
+{
+    cpu::ReOrderBuffer<> rob;
+    rob.reset();
+
+    constexpr std::uint32_t A_PC      = 0x1000;
+    constexpr std::uint32_t BRANCH_PC = 0x1004;
+    constexpr std::uint32_t C_PC      = 0x1008;
+
+    alloc_with_pc(rob, A_PC);
+    auto branch_index = alloc_with_pc(rob, BRANCH_PC);
+    alloc_with_pc(rob, C_PC);
+
+    assert(rob.size() == 3);
+
+    auto squashed = rob.squash_younger_than(branch_index);
+
+    assert(squashed.size() == 1);
+    assert(squashed[0].pc == C_PC);
+    assert(rob.size() == 2);
+
+    // Surviving ROB: [A][BRANCH]
+    assert(rob.entry(branch_index) != nullptr);
+    assert(rob.entry(branch_index)->pc == BRANCH_PC);
+
+    std::cout << "  [PASS] Test 16: squash_younger_than – squash exactly one younger entry.\n";
+}
+
+// ── Test 17 ─────────────────────────────────────────────────────────────────
+// ROB: [A][B][BRANCH][C][D][E]  – squash C, D, E in program order.
+void test_squash_multiple_instructions()
+{
+    cpu::ReOrderBuffer<> rob;
+    rob.reset();
+
+    constexpr std::uint32_t A_PC      = 0x1000;
+    constexpr std::uint32_t B_PC      = 0x1004;
+    constexpr std::uint32_t BRANCH_PC = 0x1008;
+    constexpr std::uint32_t C_PC      = 0x100C;
+    constexpr std::uint32_t D_PC      = 0x1010;
+    constexpr std::uint32_t E_PC      = 0x1014;
+
+    alloc_with_pc(rob, A_PC);
+    alloc_with_pc(rob, B_PC);
+    auto branch_index = alloc_with_pc(rob, BRANCH_PC);
+    alloc_with_pc(rob, C_PC);
+    alloc_with_pc(rob, D_PC);
+    alloc_with_pc(rob, E_PC);
+
+    assert(rob.size() == 6);
+
+    auto squashed = rob.squash_younger_than(branch_index);
+
+    // Three entries squashed, returned in program order C → D → E.
+    assert(squashed.size() == 3);
+    assert(squashed[0].pc == C_PC);
+    assert(squashed[1].pc == D_PC);
+    assert(squashed[2].pc == E_PC);
+
+    assert(rob.size() == 3);
+
+    std::cout << "  [PASS] Test 17: squash_younger_than – squash multiple (C,D,E) in program order.\n";
+}
+
+// ── Test 18 ─────────────────────────────────────────────────────────────────
+// ROB: [BRANCH][A][B][C]  – branch is the head; all three younger entries squashed.
+void test_squash_branch_at_head()
+{
+    cpu::ReOrderBuffer<> rob;
+    rob.reset();
+
+    constexpr std::uint32_t BRANCH_PC = 0x2000;
+    constexpr std::uint32_t A_PC      = 0x2004;
+    constexpr std::uint32_t B_PC      = 0x2008;
+    constexpr std::uint32_t C_PC      = 0x200C;
+
+    auto branch_index = alloc_with_pc(rob, BRANCH_PC);
+    alloc_with_pc(rob, A_PC);
+    alloc_with_pc(rob, B_PC);
+    alloc_with_pc(rob, C_PC);
+
+    assert(rob.size() == 4);
+
+    auto squashed = rob.squash_younger_than(branch_index);
+
+    assert(squashed.size() == 3);
+    assert(squashed[0].pc == A_PC);
+    assert(squashed[1].pc == B_PC);
+    assert(squashed[2].pc == C_PC);
+
+    assert(rob.size() == 1);
+
+    // Only BRANCH survives.
+    assert(rob.entry(branch_index) != nullptr);
+    assert(rob.entry(branch_index)->pc == BRANCH_PC);
+
+    std::cout << "  [PASS] Test 18: squash_younger_than – branch at head squashes all younger entries.\n";
+}
+
+// ── Test 19 ⭐ ────────────────────────────────────────────────────────────────
+// Circular / wrapped ROB.
+//
+// We use capacity = 8.  Logical order: A → B → BRANCH → C → D
+// Physical layout after the wrap:
+//   index:  0    1    2    3    4    5    6    7
+//           C    D   ---  ---  ---  BR    A    B
+//
+// Achieved by:
+//   1. Fill slots 0..4 with dummies and commit them (head advances to 5).
+//   2. Allocate BRANCH (→ slot 5), A (→ slot 6), B (→ slot 7).
+//   3. Allocate C (→ slot 0, wrapped), D (→ slot 1, wrapped).
+//   4. squash_younger_than(branch) must return {C, D} in that order.
+void test_squash_circular_rob()
+{
+    cpu::ReOrderBuffer<8> rob;
+    rob.reset();
+
+    constexpr std::uint32_t DUMMY_PC  = 0x0000;
+    constexpr std::uint32_t BRANCH_PC = 0x3000;
+    constexpr std::uint32_t A_PC      = 0x3004;
+    constexpr std::uint32_t B_PC      = 0x3008;
+    constexpr std::uint32_t C_PC      = 0x300C;
+    constexpr std::uint32_t D_PC      = 0x3010;
+
+    // Step 1: allocate 5 dummy entries (slots 0..4), complete & commit all.
+    for (int i = 0; i < 5; ++i)
+    {
+        cpu::ReOrderBuffer<8>::Index idx = 0;
+        cpu::RenameBundle b{};
+        b.valid = true;
+        b.pc    = DUMMY_PC;
+        assert(rob.allocate(b, idx));
+        rob.complete(idx);
+        cpu::ROBEntry discard{};
+        assert(rob.commit(discard));
+    }
+    // head_ == 5, tail_ == 5, count == 0.
+    assert(rob.empty());
+    assert(rob.head_index() == 5);
+
+    // Step 2: allocate BRANCH (slot 5), A (slot 6), B (slot 7).
+    cpu::ReOrderBuffer<8>::Index branch_index = 0;
+    {
+        cpu::RenameBundle b{};
+        b.valid = true;
+        b.pc    = BRANCH_PC;
+        assert(rob.allocate(b, branch_index));
+        assert(branch_index == 5);
+    }
+
+    cpu::ReOrderBuffer<8>::Index a_index = 0;
+    {
+        cpu::RenameBundle b{};
+        b.valid = true;
+        b.pc    = A_PC;
+        assert(rob.allocate(b, a_index));
+        assert(a_index == 6);
+    }
+
+    cpu::ReOrderBuffer<8>::Index b_index = 0;
+    {
+        cpu::RenameBundle b{};
+        b.valid = true;
+        b.pc    = B_PC;
+        assert(rob.allocate(b, b_index));
+        assert(b_index == 7);
+    }
+
+    // Step 3: allocate C (slot 0, wrapped) and D (slot 1, wrapped).
+    cpu::ReOrderBuffer<8>::Index c_index = 0;
+    {
+        cpu::RenameBundle b{};
+        b.valid = true;
+        b.pc    = C_PC;
+        assert(rob.allocate(b, c_index));
+        assert(c_index == 0);   // wrapped around
+    }
+
+    cpu::ReOrderBuffer<8>::Index d_index = 0;
+    {
+        cpu::RenameBundle b{};
+        b.valid = true;
+        b.pc    = D_PC;
+        assert(rob.allocate(b, d_index));
+        assert(d_index == 1);   // wrapped around
+    }
+
+    // Confirm physical layout: BRANCH=slot5, A=slot6, B=slot7, C=slot0, D=slot1
+    assert(rob.raw_entry(5).pc == BRANCH_PC);
+    assert(rob.raw_entry(6).pc == A_PC);
+    assert(rob.raw_entry(7).pc == B_PC);
+    assert(rob.raw_entry(0).pc == C_PC);
+    assert(rob.raw_entry(1).pc == D_PC);
+    assert(rob.size() == 5);
+
+    // Step 4: squash younger than BRANCH.
+    auto squashed = rob.squash_younger_than(branch_index);
+
+    // Must return A, B, C, D in logical (program) order.
+    assert(squashed.size() == 4);
+    assert(squashed[0].pc == A_PC);
+    assert(squashed[1].pc == B_PC);
+    assert(squashed[2].pc == C_PC);
+    assert(squashed[3].pc == D_PC);
+
+    assert(rob.size() == 1);
+
+    // BRANCH entry must still be live.
+    assert(rob.entry(branch_index) != nullptr);
+    assert(rob.entry(branch_index)->pc == BRANCH_PC);
+
+    // Slots that were squashed must now be cleared (valid == false).
+    assert(!rob.raw_entry(6).valid);  // A
+    assert(!rob.raw_entry(7).valid);  // B
+    assert(!rob.raw_entry(0).valid);  // C
+    assert(!rob.raw_entry(1).valid);  // D
+
+    std::cout << "  [PASS] Test 19 ⭐: squash_younger_than – circular/wrapped ROB uses logical order, not physical index.\n";
+}
+
+// ── Test 20 (safety) ────────────────────────────────────────────────────────
+// Passing an invalid / non-active index must return an empty vector and leave
+// the ROB completely unchanged.
+void test_squash_invalid_index()
+{
+    cpu::ReOrderBuffer<> rob;
+    rob.reset();
+
+    constexpr std::uint32_t A_PC = 0x4000;
+    constexpr std::uint32_t B_PC = 0x4004;
+
+    alloc_with_pc(rob, A_PC);
+    alloc_with_pc(rob, B_PC);
+
+    assert(rob.size() == 2);
+
+    // Index 15 is within the array bounds but was never allocated here.
+    constexpr cpu::ReOrderBuffer<>::Index invalid_index = 15;
+
+    auto squashed = rob.squash_younger_than(invalid_index);
+
+    assert(squashed.empty());
+    assert(rob.size() == 2);  // ROB completely unchanged
+
+    std::cout << "  [PASS] Test 20: squash_younger_than – invalid index is a safe no-op.\n";
+}
+
 } // namespace
 
 int main()
@@ -738,8 +1035,16 @@ int main()
     std::cout << "\n[7] Full subsystem integration test:\n";
     test_full_subsystem_integration();
 
+    std::cout << "\n[8] squash_younger_than() tests:\n";
+    test_squash_no_younger();
+    test_squash_one_instruction();
+    test_squash_multiple_instructions();
+    test_squash_branch_at_head();
+    test_squash_circular_rob();
+    test_squash_invalid_index();
+
     std::cout << "\n===================================================================\n";
-    std::cout << "[PASS] All 7 test suites (15 tests total) completed successfully!\n";
+    std::cout << "[PASS] All 8 test suites (20 tests total) completed successfully!\n";
     std::cout << "===================================================================\n";
 
     return 0;

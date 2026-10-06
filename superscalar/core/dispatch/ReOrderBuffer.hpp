@@ -217,6 +217,84 @@ namespace cpu
             return tail_;
           }
 
+          [[nodiscard]]
+          std::vector<ROBEntry>squash_younger_than(Index branch_index)noexcept
+          {
+            std::vector<ROBEntry> squashed;
+
+            if (count_ == 0)
+            {
+                return squashed;
+            }
+        
+            // Locate the branch in logical ROB order.
+           
+        
+            Index current = head_;
+            std::size_t branch_position = 0;
+            bool found = false;
+        
+            for (std::size_t position = 0;
+                 position < count_;
+                 ++position)
+            {
+                if (current == branch_index)
+                {
+                    branch_position = position;
+                    found = true;
+                    break;
+                }
+        
+                current = next_index(current);
+            }
+        
+            if (!found)
+            {
+                return squashed;
+            }
+        
+            // Number of entries younger than the branch.
+            const std::size_t younger_count =
+                count_ - branch_position - 1;
+        
+            
+            // Removing younger entries in program order.
+          
+        
+            Index current_younger = next_index(branch_index);
+        
+            for (std::size_t i = 0;
+                 i < younger_count;
+                 ++i)
+            {
+                if (entries_[current_younger].valid)
+                {
+                    squashed.push_back(entries_[current_younger]);
+                }
+        
+                entries_[current_younger] = ROBEntry{};
+        
+                current_younger =
+                    next_index(current_younger);
+            }
+        
+           
+            // Branch becomes the youngest surviving ROB entry.
+            
+        
+            tail_ = next_index(branch_index);
+        
+            count_ -= younger_count;
+        
+            return squashed;
+        
+          }
+          [[nodiscard]]
+          Index next_index(Index index)const noexcept
+          {
+            return (index +1) % Capacity;
+          }
+
           //reset
           void reset() noexcept
           {
