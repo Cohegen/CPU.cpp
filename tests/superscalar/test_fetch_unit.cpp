@@ -1,5 +1,5 @@
-#include "../../superscalar/core/FetchUnit.hpp"
-#include "../../superscalar/core/FetchBundle.hpp"
+#include "../../superscalar/core/fetch/FetchUnit.hpp"
+#include "../../superscalar/core/fetch/FetchBundle.hpp"
 
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>

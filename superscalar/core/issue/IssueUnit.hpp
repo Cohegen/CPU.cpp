@@ -11,13 +11,18 @@ namespace cpu {
 class IssueUnit
 {
 public:
-    explicit IssueUnit(std::size_t issue_width = 1);
+    explicit IssueUnit(std::size_t issue_width = 1) noexcept
+        : issue_width_(issue_width)
+    {
+    }
 
     template<std::size_t Capacity>
     std::vector<ExecutionRequest>
     issue(IssueQueue<Capacity>& issue_queue);
 
-    void reset();
+    void reset() noexcept
+    {
+    }
 
 private:
     std::size_t issue_width_{};

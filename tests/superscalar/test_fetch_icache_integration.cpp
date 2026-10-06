@@ -1,8 +1,8 @@
-#include "../../superscalar/core/FetchUnit.hpp"
-#include "../../superscalar/core/FetchBundle.hpp"
-#include "../../superscalar/core/CacheLine.hpp"
-#include "../../superscalar/core/InstructionCacheController.hpp"
-#include "../../superscalar/core/SuperScalarInstructionMemory.hpp"
+#include "../../superscalar/core/fetch/FetchUnit.hpp"
+#include "../../superscalar/core/fetch/FetchBundle.hpp"
+#include "../../superscalar/core/memory/CacheLine.hpp"
+#include "../../superscalar/core/memory/InstructionCacheController.hpp"
+#include "../../superscalar/core/memory/SuperScalarInstructionMemory.hpp"
 
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>

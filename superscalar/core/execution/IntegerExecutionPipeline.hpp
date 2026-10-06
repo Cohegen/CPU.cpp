@@ -67,7 +67,7 @@ public:
 
         for (std::size_t lane_index = 0; lane_index < selected_count; ++lane_index)
         {
-            write_back(lanes_[lane_index].result_bundle());
+            write_back(lanes_[lane_index].unit.result_bundle());
         }
 
         ROBEntry committed{};

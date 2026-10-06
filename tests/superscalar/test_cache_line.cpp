@@ -1,4 +1,4 @@
-#include "../../superscalar/core/CacheLine.hpp"
+#include "../../superscalar/core/memory/CacheLine.hpp"
 
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>

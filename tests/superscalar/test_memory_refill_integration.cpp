@@ -1,6 +1,6 @@
-#include "../../superscalar/core/CacheLine.hpp"
-#include "../../superscalar/core/InstructionCacheController.hpp"
-#include "../../superscalar/core/SuperScalarInstructionMemory.hpp"
+#include "../../superscalar/core/memory/CacheLine.hpp"
+#include "../../superscalar/core/memory/InstructionCacheController.hpp"
+#include "../../superscalar/core/memory/SuperScalarInstructionMemory.hpp"
 
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>

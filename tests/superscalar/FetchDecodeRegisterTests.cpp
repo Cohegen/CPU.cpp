@@ -1,5 +1,5 @@
-#include "../../superscalar/core/FetchDecodeReg.hpp"
-#include "../../superscalar/core/FetchBundle.hpp"
+#include "../../superscalar/core/fetch/FetchDecodeReg.hpp"
+#include "../../superscalar/core/fetch/FetchBundle.hpp"
 #include "../../include/isa/Instruction.hpp"
 #include "../../include/isa/Opcode.hpp"
 
