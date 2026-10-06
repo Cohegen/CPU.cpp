@@ -30,6 +30,7 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/dispatch"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/issue"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/execution"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/branch"
 )
 
 add_executable(cpu_cpp
@@ -368,6 +369,17 @@ target_link_libraries(IntegerExecutionPipelineTests
 )
 
 add_test(NAME IntegerExecutionPipelineTests COMMAND IntegerExecutionPipelineTests)
+
+add_executable(BranchExecutionUnitTests
+    tests/superscalar/BranchExecutionUnitTests.cpp
+)
+
+target_link_libraries(BranchExecutionUnitTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME BranchExecutionUnitTests COMMAND BranchExecutionUnitTests)
 
 
 
