@@ -170,12 +170,11 @@ namespace cpu {
             return false;
           }
 
-          // ===================================================================
-          // Squashing (Branch Misprediction Recovery)
-          // ===================================================================
-
+       
+          /*Squashing (Branch Misprediction Recovery)
+          */
           // Removes all valid entries matching the given rob_index.
-          // Note: entries are removed regardless of whether issued is true or false.
+          //entries are removed regardless of whether issued is true or false.
           // An issued-but-uncommitted instruction remains speculative.
           std::size_t squash(std::size_t rob_index) noexcept
           {
