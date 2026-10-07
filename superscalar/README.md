@@ -2,9 +2,6 @@
 
 An ongoing implementation of a modern **multi-issue superscalar CPU architecture** designed to fetch, decode, and execute multiple instructions per cycle ($IPC > 1.0$).
 
-> [!NOTE]
-> **Work in Progress**: This architecture is currently under active development. Core fetch mechanisms (`FetchBundle`, `FetchUnit`) and the dual-port I-cache subsystem have been implemented and verified with comprehensive unit and integration test suites.
-
 ---
 
 ## Vision & Architecture Objectives
