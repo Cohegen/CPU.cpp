@@ -74,6 +74,8 @@ public:
             valid0,
             valid1,
             next_pc,
+            nullptr,
+            nullptr,
             nullptr
         )
     {
@@ -110,7 +112,89 @@ public:
             valid0,
             valid1,
             next_pc,
-            &stall
+            &stall,
+            nullptr,
+            nullptr
+        )
+    {
+    }
+
+    FetchUnit(
+        logic::Wire& clock,
+        logic::Wire& reset,
+
+        logic::Bus<CPUAddressWidth>& pc0,
+        logic::Bus<CPUAddressWidth>& pc1,
+
+        logic::Bus<InstructionWidth>& instruction0,
+        logic::Bus<InstructionWidth>& instruction1,
+
+        logic::Wire& hit0,
+        logic::Wire& hit1,
+
+        logic::Wire& valid0,
+        logic::Wire& valid1,
+
+        logic::Bus<CPUAddressWidth>& next_pc,
+
+        logic::Bus<CPUAddressWidth>& redirect_pc,
+        logic::Wire& redirect
+    )
+        : FetchUnit(
+            clock,
+            reset,
+            pc0,
+            pc1,
+            instruction0,
+            instruction1,
+            hit0,
+            hit1,
+            valid0,
+            valid1,
+            next_pc,
+            nullptr,
+            &redirect_pc,
+            &redirect
+        )
+    {
+    }
+
+    FetchUnit(
+        logic::Wire& clock,
+        logic::Wire& reset,
+
+        logic::Bus<CPUAddressWidth>& pc0,
+        logic::Bus<CPUAddressWidth>& pc1,
+
+        logic::Bus<InstructionWidth>& instruction0,
+        logic::Bus<InstructionWidth>& instruction1,
+
+        logic::Wire& hit0,
+        logic::Wire& hit1,
+
+        logic::Wire& valid0,
+        logic::Wire& valid1,
+
+        logic::Bus<CPUAddressWidth>& next_pc,
+        logic::Wire& stall,
+        logic::Bus<CPUAddressWidth>& redirect_pc,
+        logic::Wire& redirect
+    )
+        : FetchUnit(
+            clock,
+            reset,
+            pc0,
+            pc1,
+            instruction0,
+            instruction1,
+            hit0,
+            hit1,
+            valid0,
+            valid1,
+            next_pc,
+            &stall,
+            &redirect_pc,
+            &redirect
         )
     {
     }
@@ -143,20 +227,32 @@ public:
         pc_plus_8_adder.evaluate();
 
         /*
-          3. Re-evaluate program counter combinational multiplexers so that
-             next_pc (PC + 8) is routed to register input for the next clock edge.
+         3. PC selection: branch target redirect wins over sequential next (+8)
+         */
+        if (redirect_.read() == logic::LogicState::HIGH)
+        {
+            copy_bus(redirect_pc_, pc_next_);
+        }
+        else
+        {
+            copy_bus(pc_plus_8_, pc_next_);
+        }
+
+        /*
+          4. Re-evaluate program counter combinational multiplexers so that
+             pc_next_ is routed to register input for the next clock edge.
          */
         program_counter_.evaluate();
 
         /*
-          4.Driving output address buses
+          5. Driving output address buses
          */
         copy_bus(pc_, pc0_);
         copy_bus(pc_plus_4_, pc1_);
         copy_bus(pc_plus_8_, next_pc_);
 
         /*
-         5. Deriving valid signals
+          6. Deriving valid signals
          */
         if (reset_.read() == logic::LogicState::HIGH)
         {
@@ -243,6 +339,42 @@ public:
     }
 
     [[nodiscard]]
+    logic::Bus<CPUAddressWidth>& redirect_pc() noexcept
+    {
+        return redirect_pc_;
+    }
+
+    [[nodiscard]]
+    const logic::Bus<CPUAddressWidth>& redirect_pc() const noexcept
+    {
+        return redirect_pc_;
+    }
+
+    [[nodiscard]]
+    logic::Wire& redirect() noexcept
+    {
+        return redirect_;
+    }
+
+    [[nodiscard]]
+    const logic::Wire& redirect() const noexcept
+    {
+        return redirect_;
+    }
+
+    [[nodiscard]]
+    logic::Bus<CPUAddressWidth>& pc_next() noexcept
+    {
+        return pc_next_;
+    }
+
+    [[nodiscard]]
+    const logic::Bus<CPUAddressWidth>& pc_next() const noexcept
+    {
+        return pc_next_;
+    }
+
+    [[nodiscard]]
     FetchBundle get_bundle() const noexcept
     {
         return FetchBundle(
@@ -313,7 +445,9 @@ private:
         logic::Wire& valid1,
 
         logic::Bus<CPUAddressWidth>& next_pc,
-        logic::Wire* stall
+        logic::Wire* stall,
+        logic::Bus<CPUAddressWidth>* redirect_pc,
+        logic::Wire* redirect
     )
         : clock_(clock),
           reset_(reset),
@@ -333,6 +467,9 @@ private:
           next_pc_(next_pc),
 
           stall_wire_(stall),
+
+          redirect_pc_(redirect_pc ? *redirect_pc : default_redirect_pc_),
+          redirect_(redirect ? *redirect : default_redirect_),
 
           pc_plus_4_adder(
               pc_,
@@ -354,10 +491,14 @@ private:
               clock_,
               reset_,
               pc_enable_,
-              pc_plus_8_,
+              pc_next_,
               pc_
           )
     {
+        default_redirect_pc_.clear();
+        default_redirect_.write(logic::LogicState::LOW);
+        pc_next_.clear();
+
         pc_enable_.write(
             logic::LogicState::HIGH
         );
@@ -401,9 +542,26 @@ private:
     logic::Wire* stall_wire_{nullptr};
 
     /*
+     Default redirect signals when optional inputs are omitted
+     */
+    logic::Bus<CPUAddressWidth> default_redirect_pc_;
+    logic::Wire default_redirect_{logic::LogicState::LOW};
+
+    /*
+     Redirect inputs
+     */
+    logic::Bus<CPUAddressWidth>& redirect_pc_;
+    logic::Wire& redirect_;
+
+    /*
      Architectural PC register bus
      */
     logic::Bus<CPUAddressWidth> pc_;
+
+    /*
+     PC selection bus (fed into ProgramCounter input)
+     */
+    logic::Bus<CPUAddressWidth> pc_next_;
 
     /*
      Constants

@@ -24,6 +24,7 @@ public:
         logic::Wire& clock,
         logic::Wire& reset,
         logic::Wire& enable,
+        logic::Wire& flush,
 
         logic::Bus<CPUAddressWidth>& fetch_pc0,
         logic::Bus<InstructionWidth>& fetch_instruction0,
@@ -44,6 +45,7 @@ public:
         clock_(clock),
         reset_(reset),
         enable_(enable),
+        flush_(flush),
         fetch_pc0_(fetch_pc0),
         fetch_instruction0_(fetch_instruction0),
         fetch_valid0_(fetch_valid0),
@@ -57,30 +59,36 @@ public:
         decode_instruction1_(decode_instruction1),
         decode_valid1_(decode_valid1),
 
-        // Lane 0: Mux feedback for stall (enable) and clear (reset)
+        // Lane 0: Mux feedback for stall (enable), clear (reset), and speculative recovery (flush)
         enable_mux_pc0_(pc0_reg_out_, fetch_pc0_, enable_, enable_out_pc0_),
-        reset_mux_pc0_(enable_out_pc0_, zero_pc0_, reset_, pc0_reg_in_),
+        reset_mux_pc0_(enable_out_pc0_, zero_pc0_, reset_, reset_out_pc0_),
+        flush_mux_pc0_(reset_out_pc0_, zero_pc0_, flush_, pc0_reg_in_),
         pc0_reg_(pc0_reg_in_, clock_, pc0_reg_out_),
 
         enable_mux_instr0_(instruction0_reg_out_, fetch_instruction0_, enable_, enable_out_instr0_),
-        reset_mux_instr0_(enable_out_instr0_, zero_instr0_, reset_, instr0_reg_in_),
+        reset_mux_instr0_(enable_out_instr0_, zero_instr0_, reset_, reset_out_instr0_),
+        flush_mux_instr0_(reset_out_instr0_, zero_instr0_, flush_, instr0_reg_in_),
         instruction0_reg_(instr0_reg_in_, clock_, instruction0_reg_out_),
 
         enable_mux_valid0_(valid0_reg_output_, valid0_reg_input_, enable_, enable_out_valid0_),
-        reset_mux_valid0_(enable_out_valid0_, zero_valid0_, reset_, valid0_reg_in_),
+        reset_mux_valid0_(enable_out_valid0_, zero_valid0_, reset_, reset_out_valid0_),
+        flush_mux_valid0_(reset_out_valid0_, zero_valid0_, flush_, valid0_reg_in_),
         valid0_reg_(valid0_reg_in_, clock_, valid0_reg_output_),
 
-        // Lane 1: Mux feedback for stall (enable) and clear (reset)
+        // Lane 1: Mux feedback for stall (enable), clear (reset), and speculative recovery (flush)
         enable_mux_pc1_(pc1_reg_out_, fetch_pc1_, enable_, enable_out_pc1_),
-        reset_mux_pc1_(enable_out_pc1_, zero_pc1_, reset_, pc1_reg_in_),
+        reset_mux_pc1_(enable_out_pc1_, zero_pc1_, reset_, reset_out_pc1_),
+        flush_mux_pc1_(reset_out_pc1_, zero_pc1_, flush_, pc1_reg_in_),
         pc1_reg_(pc1_reg_in_, clock_, pc1_reg_out_),
 
         enable_mux_instr1_(instruction1_reg_out_, fetch_instruction1_, enable_, enable_out_instr1_),
-        reset_mux_instr1_(enable_out_instr1_, zero_instr1_, reset_, instr1_reg_in_),
+        reset_mux_instr1_(enable_out_instr1_, zero_instr1_, reset_, reset_out_instr1_),
+        flush_mux_instr1_(reset_out_instr1_, zero_instr1_, flush_, instr1_reg_in_),
         instruction1_reg_(instr1_reg_in_, clock_, instruction1_reg_out_),
 
         enable_mux_valid1_(valid1_reg_output_, valid1_reg_input_, enable_, enable_out_valid1_),
-        reset_mux_valid1_(enable_out_valid1_, zero_valid1_, reset_, valid1_reg_in_),
+        reset_mux_valid1_(enable_out_valid1_, zero_valid1_, reset_, reset_out_valid1_),
+        flush_mux_valid1_(reset_out_valid1_, zero_valid1_, flush_, valid1_reg_in_),
         valid1_reg_(valid1_reg_in_, clock_, valid1_reg_output_)
     {
         zero_pc0_.clear();
@@ -120,18 +128,28 @@ public:
         // 2. Evaluating Lane 0 multiplexers
         enable_mux_pc0_.evaluate();
         reset_mux_pc0_.evaluate();
+        flush_mux_pc0_.evaluate();
+
         enable_mux_instr0_.evaluate();
         reset_mux_instr0_.evaluate();
+        flush_mux_instr0_.evaluate();
+
         enable_mux_valid0_.evaluate();
         reset_mux_valid0_.evaluate();
+        flush_mux_valid0_.evaluate();
 
         // 3. Evaluating Lane 1 multiplexers
         enable_mux_pc1_.evaluate();
         reset_mux_pc1_.evaluate();
+        flush_mux_pc1_.evaluate();
+
         enable_mux_instr1_.evaluate();
         reset_mux_instr1_.evaluate();
+        flush_mux_instr1_.evaluate();
+
         enable_mux_valid1_.evaluate();
         reset_mux_valid1_.evaluate();
+        flush_mux_valid1_.evaluate();
 
         // 4. Evaluate sequential registers
         pc0_reg_.evaluate();
@@ -200,6 +218,7 @@ private:
     logic::Wire& clock_;
     logic::Wire& reset_;
     logic::Wire& enable_;
+    logic::Wire& flush_;
 
     // Lane 0 inputs
     logic::Bus<CPUAddressWidth>& fetch_pc0_;
@@ -232,51 +251,67 @@ private:
 
     // Internal Mux intermediate buses
     logic::Bus<CPUAddressWidth> enable_out_pc0_;
+    logic::Bus<CPUAddressWidth> reset_out_pc0_;
     logic::Bus<CPUAddressWidth> pc0_reg_in_;
+
     logic::Bus<InstructionWidth> enable_out_instr0_;
+    logic::Bus<InstructionWidth> reset_out_instr0_;
     logic::Bus<InstructionWidth> instr0_reg_in_;
+
     logic::Bus<1> enable_out_valid0_;
+    logic::Bus<1> reset_out_valid0_;
     logic::Bus<1> valid0_reg_in_;
 
     logic::Bus<CPUAddressWidth> enable_out_pc1_;
+    logic::Bus<CPUAddressWidth> reset_out_pc1_;
     logic::Bus<CPUAddressWidth> pc1_reg_in_;
+
     logic::Bus<InstructionWidth> enable_out_instr1_;
+    logic::Bus<InstructionWidth> reset_out_instr1_;
     logic::Bus<InstructionWidth> instr1_reg_in_;
+
     logic::Bus<1> enable_out_valid1_;
+    logic::Bus<1> reset_out_valid1_;
     logic::Bus<1> valid1_reg_in_;
 
     // Lane 0 register outputs & multiplexers
     logic::Bus<CPUAddressWidth> pc0_reg_out_;
     logic::Mux<CPUAddressWidth> enable_mux_pc0_;
     logic::Mux<CPUAddressWidth> reset_mux_pc0_;
+    logic::Mux<CPUAddressWidth> flush_mux_pc0_;
     logic::Register<CPUAddressWidth> pc0_reg_;
 
     logic::Bus<InstructionWidth> instruction0_reg_out_;
     logic::Mux<InstructionWidth> enable_mux_instr0_;
     logic::Mux<InstructionWidth> reset_mux_instr0_;
+    logic::Mux<InstructionWidth> flush_mux_instr0_;
     logic::Register<InstructionWidth> instruction0_reg_;
 
     logic::Bus<1> valid0_reg_input_;
     logic::Bus<1> valid0_reg_output_;
     logic::Mux<1> enable_mux_valid0_;
     logic::Mux<1> reset_mux_valid0_;
+    logic::Mux<1> flush_mux_valid0_;
     logic::Register<1> valid0_reg_;
 
     // Lane 1 register outputs & multiplexers
     logic::Bus<CPUAddressWidth> pc1_reg_out_;
     logic::Mux<CPUAddressWidth> enable_mux_pc1_;
     logic::Mux<CPUAddressWidth> reset_mux_pc1_;
+    logic::Mux<CPUAddressWidth> flush_mux_pc1_;
     logic::Register<CPUAddressWidth> pc1_reg_;
 
     logic::Bus<InstructionWidth> instruction1_reg_out_;
     logic::Mux<InstructionWidth> enable_mux_instr1_;
     logic::Mux<InstructionWidth> reset_mux_instr1_;
+    logic::Mux<InstructionWidth> flush_mux_instr1_;
     logic::Register<InstructionWidth> instruction1_reg_;
 
     logic::Bus<1> valid1_reg_input_;
     logic::Bus<1> valid1_reg_output_;
     logic::Mux<1> enable_mux_valid1_;
     logic::Mux<1> reset_mux_valid1_;
+    logic::Mux<1> flush_mux_valid1_;
     logic::Register<1> valid1_reg_;
 
     template <std::size_t Width>

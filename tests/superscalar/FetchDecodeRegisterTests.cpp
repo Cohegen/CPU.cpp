@@ -38,6 +38,7 @@ struct TestHarness {
     logic::Wire clock{logic::LogicState::LOW};
     logic::Wire reset{logic::LogicState::LOW};
     logic::Wire enable{logic::LogicState::HIGH};
+    logic::Wire flush{logic::LogicState::LOW};
 
     // Lane 0 inputs
     logic::Bus<32> fetch_pc0;
@@ -63,6 +64,7 @@ struct TestHarness {
         clock,
         reset,
         enable,
+        flush,
         fetch_pc0,
         fetch_instruction0,
         fetch_valid0,
@@ -91,6 +93,7 @@ struct TestHarness {
     void reset_pipeline()
     {
         reset.write(logic::LogicState::HIGH);
+        flush.write(logic::LogicState::LOW);
         clock_edge();
         reset.write(logic::LogicState::LOW);
         clock.write(logic::LogicState::LOW);
@@ -625,6 +628,240 @@ void test_stall_enable_mux_feedback()
     std::cout << "  [PASS] Enable MUX feedback successfully stalled and resumed pipeline.\n";
 }
 
+// 10. Dedicated test: Normal capture, Stall, Flush, and Post-flush resume
+void test_flush_clears_pipeline()
+{
+    std::cout << "[Test 10] test_flush_clears_pipeline...\n";
+
+    TestHarness h;
+    h.reset_pipeline();
+
+    // Step A: Normal capture
+    // fetch: PC0 = 100, instruction0 = ADD, valid0 = HIGH
+    //        PC1 = 104, instruction1 = SUB, valid1 = HIGH
+    // enable = HIGH, flush = LOW, reset = LOW
+    h.enable.write(logic::LogicState::HIGH);
+    h.flush.write(logic::LogicState::LOW);
+    h.reset.write(logic::LogicState::LOW);
+
+    h.fetch_pc0.write_value(100);
+    h.fetch_instruction0.write_value(INST_ADD);
+    h.fetch_valid0.write(logic::LogicState::HIGH);
+
+    h.fetch_pc1.write_value(104);
+    h.fetch_instruction1.write_value(INST_SUB);
+    h.fetch_valid1.write(logic::LogicState::HIGH);
+
+    // clock edge
+    h.clock_edge();
+
+    // -> decode gets PC=100, ADD, valid=HIGH; PC=104, SUB, valid=HIGH
+    assert(h.decode_pc0.read_value() == 100);
+    assert(h.decode_instruction0.read_value() == INST_ADD);
+    assert(h.decode_valid0.read() == logic::LogicState::HIGH);
+
+    assert(h.decode_pc1.read_value() == 104);
+    assert(h.decode_instruction1.read_value() == INST_SUB);
+    assert(h.decode_valid1.read() == logic::LogicState::HIGH);
+
+    // Step B: Stall
+    // enable = LOW, flush = LOW
+    h.enable.write(logic::LogicState::LOW);
+    h.flush.write(logic::LogicState::LOW);
+
+    // Present new inputs
+    h.fetch_pc0.write_value(200);
+    h.fetch_instruction0.write_value(INST_AND);
+    h.fetch_pc1.write_value(204);
+    h.fetch_instruction1.write_value(INST_OR);
+
+    // clock edge
+    h.clock_edge();
+
+    // -> old contents remain
+    assert(h.decode_pc0.read_value() == 100);
+    assert(h.decode_instruction0.read_value() == INST_ADD);
+    assert(h.decode_valid0.read() == logic::LogicState::HIGH);
+
+    assert(h.decode_pc1.read_value() == 104);
+    assert(h.decode_instruction1.read_value() == INST_SUB);
+    assert(h.decode_valid1.read() == logic::LogicState::HIGH);
+
+    // Step C: Flush
+    // Load: Lane 0 PC=100, ADD, valid=HIGH; Lane 1 PC=104, SUB, valid=HIGH
+    // Then: flush = HIGH
+    h.enable.write(logic::LogicState::HIGH);
+    h.flush.write(logic::LogicState::HIGH);
+
+    // clock edge
+    h.clock_edge();
+
+    // Expected:
+    // Lane 0: valid = LOW, PC0 = 0, instruction0 = 0
+    // Lane 1: valid = LOW, PC1 = 0, instruction1 = 0
+    assert(h.decode_valid0.read() == logic::LogicState::LOW);
+    assert(h.decode_valid1.read() == logic::LogicState::LOW);
+    assert(h.decode_pc0.read_value() == 0);
+    assert(h.decode_instruction0.read_value() == 0);
+    assert(h.decode_pc1.read_value() == 0);
+    assert(h.decode_instruction1.read_value() == 0);
+
+    cpu::FetchBundle bundle = h.reg.get_bundle();
+    assert(!bundle.isValid0());
+    assert(!bundle.isValid1());
+    assert(bundle.getPC0() == 0);
+    assert(bundle.getPC1() == 0);
+
+    // Step D: Resume after flush
+    h.flush.write(logic::LogicState::LOW);
+    h.enable.write(logic::LogicState::HIGH);
+    h.fetch_pc0.write_value(300);
+    h.fetch_instruction0.write_value(INST_XOR);
+    h.fetch_valid0.write(logic::LogicState::HIGH);
+    h.fetch_valid1.write(logic::LogicState::LOW);
+
+    h.clock_edge();
+
+    assert(h.decode_valid0.read() == logic::LogicState::HIGH);
+    assert(h.decode_valid1.read() == logic::LogicState::LOW);
+    assert(h.decode_pc0.read_value() == 300);
+    assert(h.decode_instruction0.read_value() == INST_XOR);
+
+    std::cout << "  [PASS] Normal capture -> Stall -> Flush -> Resume verified successfully.\n";
+}
+
+// 11. Dedicated test: Flush while stalled
+// enable = LOW, flush = HIGH
+// Expected: flush wins!
+void test_flush_while_stalled()
+{
+    std::cout << "[Test 11] test_flush_while_stalled...\n";
+
+    TestHarness h;
+    h.reset_pipeline();
+
+    // 1. Capture instructions in both lanes
+    h.enable.write(logic::LogicState::HIGH);
+    h.flush.write(logic::LogicState::LOW);
+    h.reset.write(logic::LogicState::LOW);
+
+    h.fetch_pc0.write_value(100);
+    h.fetch_instruction0.write_value(INST_ADD);
+    h.fetch_valid0.write(logic::LogicState::HIGH);
+
+    h.fetch_pc1.write_value(104);
+    h.fetch_instruction1.write_value(INST_SUB);
+    h.fetch_valid1.write(logic::LogicState::HIGH);
+
+    h.clock_edge();
+
+    assert(h.decode_pc0.read_value() == 100);
+    assert(h.decode_pc1.read_value() == 104);
+    assert(h.decode_valid0.read() == logic::LogicState::HIGH);
+    assert(h.decode_valid1.read() == logic::LogicState::HIGH);
+
+    // 2. Critical scenario: Pipeline is stalled (enable = LOW) AND flush occurs (flush = HIGH)
+    h.enable.write(logic::LogicState::LOW);
+    h.flush.write(logic::LogicState::HIGH);
+
+    // Present new wrong-path inputs on fetch
+    h.fetch_pc0.write_value(0xDEAD);
+    h.fetch_instruction0.write_value(INST_XOR);
+    h.fetch_valid0.write(logic::LogicState::HIGH);
+
+    h.fetch_pc1.write_value(0xBEEF);
+    h.fetch_instruction1.write_value(INST_AND);
+    h.fetch_valid1.write(logic::LogicState::HIGH);
+
+    // Clock edge: flush MUST override stall MUX feedback
+    h.clock_edge();
+
+    // Expected:
+    // Flush wins -> wrong-path instructions disappear even though pipeline is stalled!
+    assert(h.decode_valid0.read() == logic::LogicState::LOW);
+    assert(h.decode_valid1.read() == logic::LogicState::LOW);
+    assert(h.decode_pc0.read_value() == 0);
+    assert(h.decode_instruction0.read_value() == 0);
+    assert(h.decode_pc1.read_value() == 0);
+    assert(h.decode_instruction1.read_value() == 0);
+
+    cpu::FetchBundle bundle = h.reg.get_bundle();
+    assert(!bundle.isValid0());
+    assert(!bundle.isValid1());
+
+    // 3. Keep pipeline stalled (enable = LOW), deassert flush (flush = LOW)
+    h.flush.write(logic::LogicState::LOW);
+    h.clock_edge();
+
+    // Output must remain cleared/invalid (stalled on cleared state)
+    assert(h.decode_valid0.read() == logic::LogicState::LOW);
+    assert(h.decode_valid1.read() == logic::LogicState::LOW);
+    assert(h.decode_pc0.read_value() == 0);
+    assert(h.decode_pc1.read_value() == 0);
+
+    // 4. Resume pipeline with correct-path instructions
+    h.enable.write(logic::LogicState::HIGH);
+    h.fetch_pc0.write_value(0x3000); // Redirected target PC
+    h.fetch_instruction0.write_value(INST_LW);
+    h.fetch_valid0.write(logic::LogicState::HIGH);
+    h.fetch_pc1.write_value(0x3004);
+    h.fetch_instruction1.write_value(INST_SW);
+    h.fetch_valid1.write(logic::LogicState::HIGH);
+
+    h.clock_edge();
+
+    assert(h.decode_valid0.read() == logic::LogicState::HIGH);
+    assert(h.decode_valid1.read() == logic::LogicState::HIGH);
+    assert(h.decode_pc0.read_value() == 0x3000);
+    assert(h.decode_instruction0.read_value() == INST_LW);
+    assert(h.decode_pc1.read_value() == 0x3004);
+    assert(h.decode_instruction1.read_value() == INST_SW);
+
+    std::cout << "  [PASS] Flush while stalled verified: flush wins and clears pipeline.\n";
+}
+
+// 12. Control priority test: reset > flush > enable
+void test_control_priority_reset_flush_enable()
+{
+    std::cout << "[Test 12] test_control_priority_reset_flush_enable...\n";
+
+    TestHarness h;
+
+    // Both reset and flush asserted simultaneously with enable = HIGH
+    h.reset.write(logic::LogicState::HIGH);
+    h.flush.write(logic::LogicState::HIGH);
+    h.enable.write(logic::LogicState::HIGH);
+
+    h.fetch_pc0.write_value(0x500);
+    h.fetch_instruction0.write_value(INST_ADD);
+    h.fetch_valid0.write(logic::LogicState::HIGH);
+
+    h.clock_edge();
+
+    assert(h.decode_valid0.read() == logic::LogicState::LOW);
+    assert(h.decode_valid1.read() == logic::LogicState::LOW);
+    assert(h.decode_pc0.read_value() == 0);
+    assert(h.decode_instruction0.read_value() == 0);
+
+    // reset = HIGH, flush = LOW, enable = HIGH -> reset clears
+    h.flush.write(logic::LogicState::LOW);
+    h.clock_edge();
+
+    assert(h.decode_valid0.read() == logic::LogicState::LOW);
+    assert(h.decode_pc0.read_value() == 0);
+
+    // reset = LOW, flush = HIGH, enable = LOW -> flush clears
+    h.reset.write(logic::LogicState::LOW);
+    h.flush.write(logic::LogicState::HIGH);
+    h.enable.write(logic::LogicState::LOW);
+    h.clock_edge();
+
+    assert(h.decode_valid0.read() == logic::LogicState::LOW);
+    assert(h.decode_pc0.read_value() == 0);
+
+    std::cout << "  [PASS] Priority hierarchy reset > flush > enable verified.\n";
+}
+
 } // namespace
 
 int main()
@@ -644,6 +881,9 @@ int main()
     supports_back_to_back_bundles();
     test_realistic_instructions();
     test_stall_enable_mux_feedback();
+    test_flush_clears_pipeline();
+    test_flush_while_stalled();
+    test_control_priority_reset_flush_enable();
 
     std::cout << "\n[PASS] All Fetch/Decode Register tests passed successfully!\n";
     return 0;

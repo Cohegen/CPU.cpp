@@ -1,5 +1,6 @@
 #include "../../superscalar/core/fetch/FetchUnit.hpp"
 #include "../../superscalar/core/fetch/FetchBundle.hpp"
+#include "../../superscalar/core/fetch/FetchDecodeReg.hpp"
 
 #include <logic/signals/bus.hpp>
 #include <logic/signals/wire.hpp>
@@ -307,6 +308,294 @@ void test_midstream_reset() {
     std::cout << "  [PASS] Reset mid-stream restores PC to 0x00\n";
 }
 
+struct RedirectingFetchUnitHarness {
+    logic::Wire clock{logic::LogicState::LOW};
+    logic::Wire reset{logic::LogicState::LOW};
+
+    logic::Bus<32> pc0;
+    logic::Bus<32> pc1;
+
+    logic::Bus<32> instruction0;
+    logic::Bus<32> instruction1;
+
+    logic::Wire hit0{logic::LogicState::LOW};
+    logic::Wire hit1{logic::LogicState::LOW};
+
+    logic::Wire valid0{logic::LogicState::LOW};
+    logic::Wire valid1{logic::LogicState::LOW};
+
+    logic::Bus<32> next_pc;
+
+    logic::Bus<32> redirect_pc;
+    logic::Wire redirect{logic::LogicState::LOW};
+
+    FetchUnit32 fetch_unit{
+        clock,
+        reset,
+        pc0,
+        pc1,
+        instruction0,
+        instruction1,
+        hit0,
+        hit1,
+        valid0,
+        valid1,
+        next_pc,
+        redirect_pc,
+        redirect
+    };
+
+    void clock_edge()
+    {
+        clock.write(logic::LogicState::LOW);
+        fetch_unit.evaluate();
+
+        clock.write(logic::LogicState::HIGH);
+        fetch_unit.evaluate();
+    }
+
+    void reset_system()
+    {
+        reset.write(logic::LogicState::HIGH);
+        redirect.write(logic::LogicState::LOW);
+        redirect_pc.clear();
+        clock_edge();
+        reset.write(logic::LogicState::LOW);
+        clock.write(logic::LogicState::LOW);
+        fetch_unit.evaluate();
+    }
+};
+
+// 7. Branch target redirect wins over sequential next (+8)
+void test_branch_target_redirect_wins() {
+    std::cout << "[Test 7] Branch target redirect wins over sequential PC (+8)...\n";
+
+    RedirectingFetchUnitHarness h;
+    h.reset_system();
+
+    // Advance 1 cycle sequentially: 0x00 -> 0x08
+    h.clock_edge();
+    assert(h.pc0.read_value() == 0x08);
+    assert(h.pc1.read_value() == 0x0C);
+    assert(h.next_pc.read_value() == 0x10);
+
+    // Assert branch target redirect to 0x200
+    h.redirect_pc.write_value(0x200);
+    h.redirect.write(logic::LogicState::HIGH);
+
+    // Clock edge: redirect MUST win over sequential PC (0x10)
+    h.clock_edge();
+
+    assert(h.pc0.read_value() == 0x200);
+    assert(h.pc1.read_value() == 0x204);
+    assert(h.next_pc.read_value() == 0x208);
+
+    // Deassert redirect: sequential execution resumes from target + 8
+    h.redirect.write(logic::LogicState::LOW);
+    h.clock_edge();
+
+    assert(h.pc0.read_value() == 0x208);
+    assert(h.pc1.read_value() == 0x20C);
+    assert(h.next_pc.read_value() == 0x210);
+
+    // Another cycle of sequential execution
+    h.clock_edge();
+    assert(h.pc0.read_value() == 0x210);
+    assert(h.pc1.read_value() == 0x214);
+    assert(h.next_pc.read_value() == 0x218);
+
+    std::cout << "  [PASS] Branch target 0x200 overrode sequential PC and execution resumed cleanly.\n";
+}
+
+// 8. Back-to-back branch redirects
+void test_back_to_back_redirects() {
+    std::cout << "[Test 8] Back-to-back branch redirects...\n";
+
+    RedirectingFetchUnitHarness h;
+    h.reset_system();
+
+    // Target 1: 0x1000
+    h.redirect_pc.write_value(0x1000);
+    h.redirect.write(logic::LogicState::HIGH);
+    h.clock_edge();
+
+    assert(h.pc0.read_value() == 0x1000);
+    assert(h.pc1.read_value() == 0x1004);
+    assert(h.next_pc.read_value() == 0x1008);
+
+    // Immediate Target 2: 0x3000
+    h.redirect_pc.write_value(0x3000);
+    h.redirect.write(logic::LogicState::HIGH);
+    h.clock_edge();
+
+    assert(h.pc0.read_value() == 0x3000);
+    assert(h.pc1.read_value() == 0x3004);
+    assert(h.next_pc.read_value() == 0x3008);
+
+    // Deassert redirect
+    h.redirect.write(logic::LogicState::LOW);
+    h.clock_edge();
+
+    assert(h.pc0.read_value() == 0x3008);
+    assert(h.pc1.read_value() == 0x300C);
+    assert(h.next_pc.read_value() == 0x3010);
+
+    std::cout << "  [PASS] Consecutive redirects handled with correct PC updates.\n";
+}
+
+// 9. End-to-end integration: FetchUnit redirect + FetchDecodeReg flush
+void test_combined_redirect_with_fetch_decode_flush() {
+    std::cout << "[Test 9] End-to-end: FetchUnit redirect + FetchDecodeReg flush...\n";
+
+    // Setup shared clock and reset
+    logic::Wire clock{logic::LogicState::LOW};
+    logic::Wire reset{logic::LogicState::LOW};
+
+    // FetchUnit signals
+    logic::Bus<32> fetch_pc0;
+    logic::Bus<32> fetch_pc1;
+    logic::Bus<32> fetch_instr0;
+    logic::Bus<32> fetch_instr1;
+    logic::Wire hit0{logic::LogicState::HIGH};
+    logic::Wire hit1{logic::LogicState::HIGH};
+    logic::Wire fetch_valid0{logic::LogicState::LOW};
+    logic::Wire fetch_valid1{logic::LogicState::LOW};
+    logic::Bus<32> next_pc;
+
+    logic::Bus<32> redirect_pc;
+    logic::Wire redirect{logic::LogicState::LOW};
+
+    FetchUnit32 fetch_unit{
+        clock, reset,
+        fetch_pc0, fetch_pc1,
+        fetch_instr0, fetch_instr1,
+        hit0, hit1,
+        fetch_valid0, fetch_valid1,
+        next_pc,
+        redirect_pc, redirect
+    };
+
+    // FetchDecodeReg signals
+    logic::Wire reg_enable{logic::LogicState::HIGH};
+    logic::Wire reg_flush{logic::LogicState::LOW};
+
+    logic::Bus<32> decode_pc0;
+    logic::Bus<32> decode_instr0;
+    logic::Wire decode_valid0{logic::LogicState::LOW};
+
+    logic::Bus<32> decode_pc1;
+    logic::Bus<32> decode_instr1;
+    logic::Wire decode_valid1{logic::LogicState::LOW};
+
+    cpu::FetchDecodeReg<32, 32> fetch_decode_reg{
+        clock, reset,
+        reg_enable, reg_flush,
+        fetch_pc0, fetch_instr0, fetch_valid0,
+        fetch_pc1, fetch_instr1, fetch_valid1,
+        decode_pc0, decode_instr0, decode_valid0,
+        decode_pc1, decode_instr1, decode_valid1
+    };
+
+    auto evaluate_pipeline = [&]() {
+        fetch_unit.evaluate();
+        fetch_decode_reg.evaluate();
+    };
+
+    auto clock_pipeline = [&]() {
+        clock.write(logic::LogicState::LOW);
+        evaluate_pipeline();
+        clock.write(logic::LogicState::HIGH);
+        evaluate_pipeline();
+    };
+
+    // Reset pipeline
+    reset.write(logic::LogicState::HIGH);
+    clock_pipeline();
+    reset.write(logic::LogicState::LOW);
+    clock.write(logic::LogicState::LOW);
+    evaluate_pipeline();
+
+    // Mock instruction data
+    constexpr uint32_t INST_BEQ = 0x11000000;
+    constexpr uint32_t INST_ADD = 0x01000000;
+    constexpr uint32_t INST_SUB = 0x02000000;
+    constexpr uint32_t INST_AND = 0x03000000;
+    constexpr uint32_t INST_TARGET_0 = 0x05000000;
+    constexpr uint32_t INST_TARGET_1 = 0x06000000;
+
+    // Cycle 1: Fetch branch at 0x00 (BEQ) and sequential inst at 0x04 (ADD)
+    fetch_instr0.write_value(INST_BEQ);
+    fetch_instr1.write_value(INST_ADD);
+    clock_pipeline();
+
+    // Decode now holds branch and sequential inst from wrong/speculative path
+    assert(decode_pc0.read_value() == 0x00);
+    assert(decode_instr0.read_value() == INST_BEQ);
+    assert(decode_valid0.read() == logic::LogicState::HIGH);
+    assert(decode_pc1.read_value() == 0x04);
+    assert(decode_instr1.read_value() == INST_ADD);
+    assert(decode_valid1.read() == logic::LogicState::HIGH);
+
+    // FetchUnit is currently fetching 0x08 (SUB) and 0x0C (AND)
+    assert(fetch_pc0.read_value() == 0x08);
+    assert(fetch_pc1.read_value() == 0x0C);
+
+    // Cycle 2: Clock in wrong-path instructions (SUB, AND) into FetchDecodeReg
+    fetch_instr0.write_value(INST_SUB);
+    fetch_instr1.write_value(INST_AND);
+    clock_pipeline();
+
+    assert(decode_pc0.read_value() == 0x08);
+    assert(decode_instr0.read_value() == INST_SUB);
+    assert(decode_valid0.read() == logic::LogicState::HIGH);
+
+    // --- RECOVERY EVENT: Branch BEQ misprediction detected! ---
+    // Recovery actions:
+    // 1. Flush FetchDecodeReg (clears wrong-path instructions)
+    // 2. Redirect FetchUnit to branch target 0x200
+    reg_flush.write(logic::LogicState::HIGH);
+    redirect_pc.write_value(0x200);
+    redirect.write(logic::LogicState::HIGH);
+
+    // Clock edge applying recovery
+    clock_pipeline();
+
+    // Verify: FetchDecodeReg is completely flushed (valid=LOW, zeroed)
+    assert(decode_valid0.read() == logic::LogicState::LOW);
+    assert(decode_valid1.read() == logic::LogicState::LOW);
+    assert(decode_pc0.read_value() == 0);
+    assert(decode_pc1.read_value() == 0);
+
+    // Verify: FetchUnit redirected to target 0x200
+    assert(fetch_pc0.read_value() == 0x200);
+    assert(fetch_pc1.read_value() == 0x204);
+    assert(next_pc.read_value() == 0x208);
+
+    // Cycle 3: Deassert recovery controls, present correct-path instructions
+    reg_flush.write(logic::LogicState::LOW);
+    redirect.write(logic::LogicState::LOW);
+
+    fetch_instr0.write_value(INST_TARGET_0);
+    fetch_instr1.write_value(INST_TARGET_1);
+
+    clock_pipeline();
+
+    // Decode now latches correct-path instructions from redirected PC 0x200
+    assert(decode_valid0.read() == logic::LogicState::HIGH);
+    assert(decode_valid1.read() == logic::LogicState::HIGH);
+    assert(decode_pc0.read_value() == 0x200);
+    assert(decode_instr0.read_value() == INST_TARGET_0);
+    assert(decode_pc1.read_value() == 0x204);
+    assert(decode_instr1.read_value() == INST_TARGET_1);
+
+    // FetchUnit continues sequentially from 0x208
+    assert(fetch_pc0.read_value() == 0x208);
+    assert(fetch_pc1.read_value() == 0x20C);
+    assert(next_pc.read_value() == 0x210);
+
+    std::cout << "  [PASS] Full recovery: wrong-path flushed, FetchUnit redirected, execution resumed at 0x200!\n";
+}
+
 } // namespace
 
 int main() {
@@ -320,6 +609,9 @@ int main() {
     test_fetch_bundle_generation();
     test_stall_freezes_pc();
     test_midstream_reset();
+    test_branch_target_redirect_wins();
+    test_back_to_back_redirects();
+    test_combined_redirect_with_fetch_decode_flush();
 
     std::cout << "\n[PASS] All FetchUnit unit tests passed successfully!\n";
     return 0;
