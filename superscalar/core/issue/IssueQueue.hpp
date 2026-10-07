@@ -2,7 +2,17 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
+#include <vector>
 #include "IssueQueueEntry.hpp"
+
+#if __has_include("../dispatch/ROBEntry.hpp")
+#include "../dispatch/ROBEntry.hpp"
+#elif __has_include("ROBEntry.hpp")
+#include "ROBEntry.hpp"
+#elif __has_include("dispatch/ROBEntry.hpp")
+#include "dispatch/ROBEntry.hpp"
+#endif
 
 namespace cpu {
     template<std::size_t Capacity=16>
@@ -158,6 +168,108 @@ namespace cpu {
                 }
             }
             return false;
+          }
+
+          // ===================================================================
+          // Squashing (Branch Misprediction Recovery)
+          // ===================================================================
+
+          // Removes all valid entries matching the given rob_index.
+          // Note: entries are removed regardless of whether issued is true or false.
+          // An issued-but-uncommitted instruction remains speculative.
+          std::size_t squash(std::size_t rob_index) noexcept
+          {
+              std::size_t removed = 0;
+              for(Index i = 0; i < Capacity; ++i)
+              {
+                  if(entries_[i].valid && entries_[i].rob_index == rob_index)
+                  {
+                      entries_[i] = Entry{};
+                      --count_;
+                      ++removed;
+                  }
+              }
+              return removed;
+          }
+
+          // Squash entries matching an initializer list of ROB indices, e.g. squash({7, 8}).
+          std::size_t squash(std::initializer_list<std::size_t> rob_indices) noexcept
+          {
+              std::size_t removed = 0;
+              for(std::size_t rob_idx : rob_indices)
+              {
+                  removed += squash(rob_idx);
+              }
+              return removed;
+          }
+
+          // Squash entries matching a vector of ROB indices.
+          std::size_t squash(const std::vector<std::size_t>& rob_indices) noexcept
+          {
+              std::size_t removed = 0;
+              for(std::size_t rob_idx : rob_indices)
+              {
+                  removed += squash(rob_idx);
+              }
+              return removed;
+          }
+
+          // Squash entries matching squashed ROBEntry list from ReOrderBuffer::squash_younger_than.
+          std::size_t squash(const std::vector<ROBEntry>& squashed_entries) noexcept
+          {
+              std::size_t removed = 0;
+              for(const auto& entry : squashed_entries)
+              {
+                  removed += squash(entry.rob_index);
+              }
+              return removed;
+          }
+
+          // Squash an entry matching a single ROBEntry.
+          std::size_t squash(const ROBEntry& rob_entry) noexcept
+          {
+              return squash(rob_entry.rob_index);
+          }
+
+          // Query whether an entry with rob_index exists in the queue
+          [[nodiscard]]
+          bool contains_rob(std::size_t rob_index) const noexcept
+          {
+              for(const auto& entry : entries_)
+              {
+                  if(entry.valid && entry.rob_index == rob_index)
+                  {
+                      return true;
+                  }
+              }
+              return false;
+          }
+
+          // Find an entry with rob_index
+          [[nodiscard]]
+          const Entry* find_rob(std::size_t rob_index) const noexcept
+          {
+              for(const auto& entry : entries_)
+              {
+                  if(entry.valid && entry.rob_index == rob_index)
+                  {
+                      return &entry;
+                  }
+              }
+              return nullptr;
+          }
+
+          [[nodiscard]]
+          Entry* find_rob(std::size_t rob_index) noexcept
+          {
+              for(auto& entry : entries_)
+              {
+                  if(entry.valid && entry.rob_index == rob_index)
+                  {
+                      return &entry;
+                  }
+              }
+              return nullptr;
           }
 
           //waking-up a physical register

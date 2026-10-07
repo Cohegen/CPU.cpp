@@ -21,6 +21,9 @@ namespace cpu
         bool valid{false};
         bool completed{false};
 
+        //ROB index
+        std::size_t rob_index{0};
+
         //instruction information
         std::uint32_t pc{0};
         std::uint32_t instruction{0};

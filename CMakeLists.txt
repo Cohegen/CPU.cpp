@@ -348,6 +348,17 @@ target_link_libraries(IssueROBTests
 
 add_test(NAME IssueROBTests COMMAND IssueROBTests)
 
+add_executable(IssueQueueTests
+    tests/superscalar/IssueQueueTests.cpp
+)
+
+target_link_libraries(IssueQueueTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME IssueQueueTests COMMAND IssueQueueTests)
+
 add_executable(ALUExecutionUnitTests
     tests/superscalar/ALUExecutionUnitTests.cpp
 )

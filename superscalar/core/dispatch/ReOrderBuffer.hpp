@@ -58,6 +58,7 @@ namespace cpu
             entry = Entry{};
             entry.valid = true;
             entry.completed = false;
+            entry.rob_index = index;
             entry.pc = bundle.pc;
             entry.instruction = bundle.instruction;
             entry.opcode = bundle.opcode;
@@ -269,6 +270,7 @@ namespace cpu
             {
                 if (entries_[current_younger].valid)
                 {
+                    entries_[current_younger].rob_index = current_younger;
                     squashed.push_back(entries_[current_younger]);
                 }
         
@@ -288,6 +290,19 @@ namespace cpu
         
             return squashed;
         
+          }
+
+          [[nodiscard]]
+          std::vector<Index> squash_younger_indices(Index branch_index) noexcept
+          {
+              auto squashed = squash_younger_than(branch_index);
+              std::vector<Index> indices;
+              indices.reserve(squashed.size());
+              for (const auto& entry : squashed)
+              {
+                  indices.push_back(entry.rob_index);
+              }
+              return indices;
           }
           [[nodiscard]]
           Index next_index(Index index)const noexcept
