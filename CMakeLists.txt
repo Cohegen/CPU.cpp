@@ -419,3 +419,14 @@ target_link_libraries(PhysicalRegisterFreeListRecoveryTests
 
 add_test(NAME PhysicalRegisterFreeListRecoveryTests COMMAND PhysicalRegisterFreeListRecoveryTests)
 
+# Branch Recovery Unit tests
+add_executable(BranchRecoveryUnitTests
+    tests/superscalar/BranchRecoveryUnitTests.cpp
+)
+
+target_link_libraries(BranchRecoveryUnitTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME BranchRecoveryUnitTests COMMAND BranchRecoveryUnitTests)
