@@ -45,10 +45,17 @@ namespace cpu
         bool branch{false};
         bool branch_taken{false};
         std::uint32_t branch_target{0};
+        bool predicted_taken{false};
+        std::uint32_t predicted_target{0};
+        bool has_prediction{false};
         bool jump{false};
         std::uint32_t jump_target{0};
 
         //halt
         bool halt{false};
+
+        //branch speculation state
+        bool has_checkpoint{false};
+        RegisterAliasTable::Checkpoint checkpoint{};
     };
 }

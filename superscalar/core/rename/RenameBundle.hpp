@@ -57,6 +57,7 @@ namespace cpu
         bool memory_read{false};
         bool memory_write{false};
         ControlFlow control_flow{ControlFlow::NONE};
+        PredictionInfo prediction;
         bool halt{false};
     };
 }

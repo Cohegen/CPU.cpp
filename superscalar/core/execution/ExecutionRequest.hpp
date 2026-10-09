@@ -1,24 +1,6 @@
-#pragma once
-
-#include <cstddef>
-#include <cstdint>
-
-#if __has_include("isa/Opcode.hpp")
-#include "isa/Opcode.hpp"
-#elif __has_include("Opcode.hpp")
-#include "Opcode.hpp"
-#else
-#include "../../../include/isa/Opcode.hpp"
-#endif
-
-#include "../rename/RenameBundle.hpp"
-#include "../decode/DecodeTypes.hpp"
-
 namespace cpu {
     struct ExecutionRequest
     {
-        using PhysicalRegister = RenameBundle::PhysicalRegister;
-
         bool valid{false};
         std::uint32_t pc{};
         std::uint32_t instruction{};
@@ -44,5 +26,12 @@ namespace cpu {
         std::size_t rob_index{};
 
         bool halt{false};
+
+        //predicted information
+        bool predicted_taken{false};
+        std::uint32_t predicted_target{};
     };
+
+  
+
 }

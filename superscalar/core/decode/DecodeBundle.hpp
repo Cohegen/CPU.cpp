@@ -13,6 +13,7 @@
 #include "../../../include/isa/Opcode.hpp"
 #include "../../../include/isa/Registers.hpp"
 #include "../../../include/isa/InstructionFormat.hpp"
+#include "../branch/BranchPredictionUnit.hpp"
 #endif
 
 #include "DecodeTypes.hpp"
@@ -48,6 +49,7 @@ namespace cpu
 
         //control flow
         ControlFlow control_flow{ControlFlow::NONE};
+        PredictionInfo prediction{};
 
         bool halt{false};
     };

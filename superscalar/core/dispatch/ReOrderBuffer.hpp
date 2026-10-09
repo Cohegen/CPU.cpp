@@ -1,9 +1,11 @@
 #pragma once
 #include <array>
+#include <vector>
 #include <cstddef>
 #include <cstdint>
 #include "ROBEntry.hpp"
 #include "../rename/RenameBundle.hpp"
+
 
 namespace cpu
 {
@@ -42,54 +44,57 @@ namespace cpu
           }
 
           //allocate an entry
-          [[nodiscard]]
-          bool allocate(const RenameBundle& bundle, Index& index) noexcept
+          bool allocate(const RenameBundle& bundle,Index& index, const RegisterAliasTable::Checkpoint* checkpoint)noexcept
           {
-            if(!bundle.valid)
+            if(!bundle.valid || full())
             {
-                return false;
-            }
-            if(full())
-            {
-                return false;
+              return false;
             }
             index = tail_;
+
             Entry& entry = entries_[tail_];
             entry = Entry{};
+
             entry.valid = true;
             entry.completed = false;
-            entry.rob_index = index;
+
             entry.pc = bundle.pc;
             entry.instruction = bundle.instruction;
             entry.opcode = bundle.opcode;
 
-            //destination
             entry.register_write = bundle.register_write;
+
             entry.physical_rd = bundle.physical_rd;
             entry.old_physical_rd = bundle.old_physical_rd;
 
-            //memory
             entry.memory_read = bundle.memory_read;
             entry.memory_write = bundle.memory_write;
 
-            //control flow 
             entry.branch = bundle.control_flow == ControlFlow::BRANCH;
             entry.jump = bundle.control_flow == ControlFlow::JUMP;
-
-            //halt
             entry.halt = bundle.halt;
 
-            //advance tail
-            tail_ = increment(tail_);
-            ++count_;
-            return true;
+            //saving branch checkpoint
+           if(entry.branch && checkpoint != nullptr)
+           {
+             entry.has_checkpoint = checkpoint->valid;
+             entry.checkpoint = *checkpoint;
+           } 
+           tail_ = increment(tail_);
+           ++count_;
+           return true;
+          }
+          [[nodiscard]]
+          bool allocate(const RenameBundle& bundle, Index& index) noexcept
+          {
+            return allocate(bundle,index,nullptr);
           }
 
           [[nodiscard]]
           bool allocate(const RenameBundle& bundle) noexcept
           {
             Index ignored = 0;
-            return allocate(bundle, ignored);
+            return allocate(bundle, ignored,nullptr);
           }
 
           [[nodiscard]]
@@ -219,95 +224,97 @@ namespace cpu
           }
 
           [[nodiscard]]
-          std::vector<ROBEntry>squash_younger_than(Index branch_index)noexcept
+          std::vector<ROBEntry>squash_younger_than(Index branch_index,std::vector<Index>& squashed_indices)noexcept
           {
-            std::vector<ROBEntry> squashed;
+            std::vector<ROBEntry>squashed;
+            squashed_indices.clear();
 
-            if (count_ == 0)
+            if(count_ ==0)
             {
-                return squashed;
+              return squashed;
             }
-        
-            // Locate the branch in logical ROB order.
-           
-        
+
+            //locate the branch in logical ROB order
             Index current = head_;
-            std::size_t branch_position = 0;
+            std::size_t branch_position =0;
             bool found = false;
-        
-            for (std::size_t position = 0;
-                 position < count_;
-                 ++position)
+
+            for(std::size_t position =0;position <count;++position)
             {
-                if (current == branch_index)
-                {
-                    branch_position = position;
-                    found = true;
-                    break;
-                }
-        
-                current = next_index(current);
+              if(current == branch_index)
+              {
+                branch_position = position;
+                found = true;
+                break;
+              }
+              current = next_index(current);
             }
-        
-            if (!found)
+
+            if(!found)
             {
-                return squashed;
+              return squashed;
             }
-        
-            // Number of entries younger than the branch.
-            const std::size_t younger_count =
-                count_ - branch_position - 1;
-        
-            
-            // Removing younger entries in program order.
-          
-        
+
+            //number of entries younger than the branch
+            const std::size_t younger_count = count_ - branch_position -1;
+
+            //removing younger entries in program order
             Index current_younger = next_index(branch_index);
-        
-            for (std::size_t i = 0;
-                 i < younger_count;
-                 ++i)
+
+            for(std::size_t i=0;i<younger_count;++i)
             {
-                if (entries_[current_younger].valid)
-                {
-                    entries_[current_younger].rob_index = current_younger;
-                    squashed.push_back(entries_[current_younger]);
-                }
-        
-                entries_[current_younger] = ROBEntry{};
-        
-                current_younger =
-                    next_index(current_younger);
+              if(entries_[current_younger].valid)
+              {
+                squashed.push_back(entries_[current_younger]);
+                squashed_indices.push_back(current_younger);
+              }
+
+              entries_[current_younger] = Entry{};
+
+              current_younger = next_index(current_younger);
             }
-        
-           
-            // Branch becomes the youngest surviving ROB entry.
-            
-        
+
+            //branch becomes youngest surviving ROB entry
             tail_ = next_index(branch_index);
-        
             count_ -= younger_count;
-        
+
             return squashed;
-        
           }
 
           [[nodiscard]]
-          std::vector<Index> squash_younger_indices(Index branch_index) noexcept
-          {
-              auto squashed = squash_younger_than(branch_index);
-              std::vector<Index> indices;
-              indices.reserve(squashed.size());
-              for (const auto& entry : squashed)
-              {
-                  indices.push_back(entry.rob_index);
+          std::vector<ROBEntry>squash_younger_than(Index branch_index) noexcept
+                {
+                    std::vector<Index> ignored_indices;
+
+                    return squash_younger_than(branch_index,ignored_indices);
               }
-              return indices;
-          }
           [[nodiscard]]
           Index next_index(Index index)const noexcept
           {
             return (index +1) % Capacity;
+          }
+
+          std::size_t squash(const std::vector<std::size_t>& squashed_rob_indices)noexcept
+          {
+            std::size_t removed =0;
+            for(auto& entry:entries_)
+            {
+              if(!entry.valid)
+              {
+                continue;
+              }
+              for(const auto rob_index:squashed_rob_indices)
+              {
+                if(entry.rob_index == rob_index)
+                {
+                  entry = Entry{};
+                  --count_;
+                  ++removed;
+                  break;
+                }
+              }
+            }
+            return removed;
           }
 
           //reset

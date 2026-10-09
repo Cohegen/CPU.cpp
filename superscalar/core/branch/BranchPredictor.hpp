@@ -21,6 +21,20 @@ struct BranchPrediction
     std::uint32_t target{0};
     bool btb_hit{false};
 };
+/*
+struct FetchPrediction
+{
+    bool redirect{false};
+    std::uint32_t target{0};
+
+    bool lane0_predicted_taken{false};
+    bool lane1_predicted_taken{false};
+
+    bool lane0_btb_hit{false};
+    bool lane1_btb_hit{false};
+};
+*/
+
 
 template <std::size_t TableSize = 256>
 class BranchPredictor
