@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 #include "IssueQueueEntry.hpp"
 
 namespace cpu {
@@ -211,12 +212,96 @@ namespace cpu {
           {
             for(auto& entry: entries_)
             {
-                entry =Entry{};
+                entry = Entry{};
             }
             count_ = 0;
           }
 
-          std::size_t squash(const std::vector<std::size_t>& rob_indices) noexcept;
+          [[nodiscard]]
+          bool contains_rob(std::size_t rob_index) const noexcept
+          {
+            for (const auto& entry : entries_)
+            {
+                if (entry.valid && entry.rob_index == rob_index)
+                {
+                    return true;
+                }
+            }
+            return false;
+          }
+
+          [[nodiscard]]
+          Entry* find_rob(std::size_t rob_index) noexcept
+          {
+            for (auto& entry : entries_)
+            {
+                if (entry.valid && entry.rob_index == rob_index)
+                {
+                    return &entry;
+                }
+            }
+            return nullptr;
+          }
+
+          [[nodiscard]]
+          const Entry* find_rob(std::size_t rob_index) const noexcept
+          {
+            for (const auto& entry : entries_)
+            {
+                if (entry.valid && entry.rob_index == rob_index)
+                {
+                    return &entry;
+                }
+            }
+            return nullptr;
+          }
+
+          std::size_t squash(const std::vector<std::size_t>& rob_indices) noexcept
+          {
+            std::size_t removed = 0;
+            for (auto& entry : entries_)
+            {
+                if (!entry.valid)
+                {
+                    continue;
+                }
+                for (const auto r_idx : rob_indices)
+                {
+                    if (entry.rob_index == r_idx)
+                    {
+                        entry = Entry{};
+                        --count_;
+                        ++removed;
+                        break;
+                    }
+                }
+            }
+            return removed;
+          }
+
+          template<typename ROBEntryType>
+          std::size_t squash(const std::vector<ROBEntryType>& squashed_entries) noexcept
+          {
+            std::size_t removed = 0;
+            for (auto& entry : entries_)
+            {
+                if (!entry.valid)
+                {
+                    continue;
+                }
+                for (const auto& rob_e : squashed_entries)
+                {
+                    if (entry.rob_index == rob_e.rob_index)
+                    {
+                        entry = Entry{};
+                        --count_;
+                        ++removed;
+                        break;
+                    }
+                }
+            }
+            return removed;
+          }
 
           private:
             std::array<Entry,Capacity>entries_{};

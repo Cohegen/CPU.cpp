@@ -60,6 +60,10 @@ namespace cpu {
         //ROB identity
         std::size_t rob_index{0};
 
+        //branch prediction
+        bool predicted_taken{false};
+        std::uint32_t predicted_target{0};
+
         //halt
         bool halt{false};
 

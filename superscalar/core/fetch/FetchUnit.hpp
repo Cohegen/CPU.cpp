@@ -134,7 +134,7 @@ public:
         logic::Wire& valid1,
 
         logic::Bus<CPUAddressWidth>& next_pc,
-        logic::Bus<CPUAddressWidth>& redirect_pc
+        logic::Bus<CPUAddressWidth>& redirect_pc,
         logic::Wire& redirect
     )
         : FetchUnit(
@@ -149,8 +149,9 @@ public:
             valid0,
             valid1,
             next_pc,
-            redirect_pc,
-            redirect
+            nullptr,
+            &redirect_pc,
+            &redirect
         )
     {
     }
@@ -183,20 +184,32 @@ public:
         pc_plus_8_adder.evaluate();
 
         /*
-          3. Re-evaluate program counter combinational multiplexers so that
-             next_pc (PC + 8) is routed to register input for the next clock edge.
+          3. Driving pc_next_ based on redirect or sequential (+8)
+         */
+        if (redirect_wire_ != nullptr && redirect_wire_->read() == logic::LogicState::HIGH && redirect_pc_bus_ != nullptr)
+        {
+            copy_bus(*redirect_pc_bus_, pc_next_);
+        }
+        else
+        {
+            copy_bus(pc_plus_8_, pc_next_);
+        }
+
+        /*
+          4. Re-evaluate program counter combinational multiplexers so that
+             pc_next_ is routed to register input for the next clock edge.
          */
         program_counter_.evaluate();
 
         /*
-          4.Driving output address buses
+          5. Driving output address buses
          */
         copy_bus(pc_, pc0_);
         copy_bus(pc_plus_4_, pc1_);
         copy_bus(pc_plus_8_, next_pc_);
 
         /*
-         5. Deriving valid signals
+         6. Deriving valid signals
          */
         if (reset_.read() == logic::LogicState::HIGH)
         {
@@ -207,13 +220,6 @@ public:
         {
             valid0_.write(hit0_.read());
             valid1_.write(hit1_.read());
-        }
-
-        if(redirect_.read()== logic::LogicState::HIGH)
-        {
-            copy_bus(redirect_pc_, pc_next_);
-        }else{
-            copy_bus(pc_plus_8_,pc_next_);
         }
     }
 
@@ -360,7 +366,9 @@ private:
         logic::Wire& valid1,
 
         logic::Bus<CPUAddressWidth>& next_pc,
-        logic::Wire* stall
+        logic::Wire* stall,
+        logic::Bus<CPUAddressWidth>* redirect_pc = nullptr,
+        logic::Wire* redirect = nullptr
     )
         : clock_(clock),
           reset_(reset),
@@ -380,6 +388,8 @@ private:
           next_pc_(next_pc),
 
           stall_wire_(stall),
+          redirect_pc_bus_(redirect_pc),
+          redirect_wire_(redirect),
 
           pc_plus_4_adder(
               pc_,
@@ -489,8 +499,8 @@ private:
     logic::RippleCarryAdder<CPUAddressWidth> pc_plus_8_adder;
 
     //redirect inputs
-    logic::Bus<CPUAddressWidth>&redirect_pc_;
-    logic::Wire& redirect_;
+    logic::Bus<CPUAddressWidth>* redirect_pc_bus_{nullptr};
+    logic::Wire* redirect_wire_{nullptr};
 };
 
 } // namespace cpu

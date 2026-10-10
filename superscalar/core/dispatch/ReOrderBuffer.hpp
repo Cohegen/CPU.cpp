@@ -73,6 +73,10 @@ namespace cpu
             entry.branch = bundle.control_flow == ControlFlow::BRANCH;
             entry.jump = bundle.control_flow == ControlFlow::JUMP;
             entry.halt = bundle.halt;
+            entry.rob_index = tail_;
+            entry.predicted_taken = bundle.prediction.predicted_taken;
+            entry.predicted_target = bundle.prediction.predicted_target;
+            entry.has_prediction = bundle.prediction.valid;
 
             //saving branch checkpoint
            if(entry.branch && checkpoint != nullptr)
@@ -239,7 +243,7 @@ namespace cpu
             std::size_t branch_position =0;
             bool found = false;
 
-            for(std::size_t position =0;position <count;++position)
+            for(std::size_t position = 0; position < count_; ++position)
             {
               if(current == branch_index)
               {

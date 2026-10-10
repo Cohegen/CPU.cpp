@@ -13,6 +13,15 @@
 #include "../../../include/isa/Opcode.hpp"
 #include "../../../include/isa/Registers.hpp"
 #include "../../../include/isa/InstructionFormat.hpp"
+#endif
+
+#if __has_include("superscalar/core/branch/BranchPredictionUnit.hpp")
+#include "superscalar/core/branch/BranchPredictionUnit.hpp"
+#elif __has_include("branch/BranchPredictionUnit.hpp")
+#include "branch/BranchPredictionUnit.hpp"
+#elif __has_include("BranchPredictionUnit.hpp")
+#include "BranchPredictionUnit.hpp"
+#else
 #include "../branch/BranchPredictionUnit.hpp"
 #endif
 

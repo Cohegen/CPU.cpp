@@ -21,19 +21,6 @@ namespace cpu
             reset(physical_register_count, initially_mapped_registers);
         }
 
-
-        void recover_from_squash(const RegisterAliasTable::Checkpoint& checkpoint,const std::vector<ROBEntry>& squashed_entries)
-        {
-            RegisterAliasTable.restore(checkpoint);
-
-            for(const auto& entry : squashed_entries)
-            {
-                if(entry.register_write)
-                {
-                    free_list.release(entry.physical_rd);
-                }
-            }
-        }
         void reset(
             std::size_t physical_register_count = 64,
             std::size_t initially_mapped_registers = 16

@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #if __has_include("isa/Registers.hpp")
 #include "isa/Registers.hpp"
@@ -20,32 +21,51 @@ namespace cpu
         
         using PhysicalRegister = std::uint8_t;
         static constexpr std::size_t ArchitecturalRegisterCount = REGISTER_COUNT;
-        struct CheckPoint
+        struct Checkpoint
         {
-           std::array<PhysicalRegister,16>mappings{};
-           bool valid{false};
+            std::array<PhysicalRegister, ArchitecturalRegisterCount> mappings{};
+            bool valid{false};
         };
-        CheckPoint checkpoint() const noexcept
-        {
-            CheckPoint snapshot{};
+        using CheckPoint = Checkpoint;
 
-            for(std::size_t i=0;i<mappings_.size();++i)
+        Checkpoint checkpoint() noexcept
+        {
+            Checkpoint snapshot{};
+            for (std::size_t i = 0; i < ArchitecturalRegisterCount; ++i)
             {
-                snapshot.mappings[i] = mappings_[i];
+                snapshot.mappings[i] = table_[i];
             }
-            snapshot.valid =true;
+            snapshot.valid = true;
+            checkpoints_.push_back(snapshot);
             return snapshot;
         }
 
-        void restore(const CheckPoint& checkpoint)noexcept
+        [[nodiscard]]
+        std::size_t checkpoint_count() const noexcept
         {
-            if(!checkpoint.valid)
+            return checkpoints_.size();
+        }
+
+        void restore() noexcept
+        {
+            if (checkpoints_.empty())
             {
                 return;
             }
-            for(std::size_t i=0;i<mappings_.size();++i)
+            const auto cp = checkpoints_.back();
+            checkpoints_.pop_back();
+            restore(cp);
+        }
+
+        void restore(const Checkpoint& cp) noexcept
+        {
+            if (!cp.valid)
             {
-                mappings_[i] = checkpoint.mappings[i];
+                return;
+            }
+            for (std::size_t i = 0; i < ArchitecturalRegisterCount; ++i)
+            {
+                table_[i] = cp.mappings[i];
             }
         }
         explicit RegisterAliasTable(std::size_t physical_reg_count = 64)
@@ -60,6 +80,7 @@ namespace cpu
             {
                 table_[i] = static_cast<PhysicalRegister>(i);
             }
+            checkpoints_.clear();
         }
 
         [[nodiscard]]
@@ -108,5 +129,6 @@ namespace cpu
     private:
         std::array<PhysicalRegister, ArchitecturalRegisterCount> table_{};
         std::size_t physical_reg_count_{64};
+        std::vector<Checkpoint> checkpoints_{};
     };
 }
