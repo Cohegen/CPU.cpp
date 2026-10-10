@@ -4,6 +4,7 @@
 - This project intends to implement various CPU microarchitecture designs and execution models.
 - The motivation of making this project, is to track and test my understanding in Computer Architecture and C++ programming as I learn them both.
 - Here I implement various processors based on microarchitectural strategies and execution models.
+- And also I benchmark various microarchitectures against themselves.
 
 ## 1. Sequential Execution Models.
 - These are the foundational models where instructions are processsed one after the other in  a strict sequential flow.
