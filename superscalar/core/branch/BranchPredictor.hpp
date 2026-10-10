@@ -20,6 +20,8 @@ struct BranchPrediction
     bool taken{false};
     std::uint32_t target{0};
     bool btb_hit{false};
+
+    constexpr bool operator==(const BranchPrediction&) const noexcept = default;
 };
 /*
 struct FetchPrediction

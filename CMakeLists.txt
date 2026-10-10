@@ -430,3 +430,16 @@ target_link_libraries(BranchRecoveryUnitTests
 )
 
 add_test(NAME BranchRecoveryUnitTests COMMAND BranchRecoveryUnitTests)
+
+# Branch Prediction Unit tests
+add_executable(BranchPredictionUnitTests
+    tests/superscalar/BranchPredictionUnitTests.cpp
+)
+
+target_link_libraries(BranchPredictionUnitTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME BranchPredictionUnitTests COMMAND BranchPredictionUnitTests)
+

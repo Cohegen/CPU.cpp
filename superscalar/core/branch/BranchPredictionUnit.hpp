@@ -5,7 +5,16 @@ An implementation of a Two-Wide Branch Prediction Unit
 #include <cstddef>
 #include <cstdint>
 
-#include "BranchExecutionUnit.hpp"
+#if __has_include("superscalar/core/decode/DecodeTypes.hpp")
+#include "superscalar/core/decode/DecodeTypes.hpp"
+#elif __has_include("decode/DecodeTypes.hpp")
+#include "decode/DecodeTypes.hpp"
+#elif __has_include("DecodeTypes.hpp")
+#include "DecodeTypes.hpp"
+#else
+#include "../decode/DecodeTypes.hpp"
+#endif
+
 #include "BranchPredictor.hpp"
 
 namespace cpu {
@@ -73,7 +82,7 @@ namespace cpu {
                 result.redirect = true;
                 result.redirect_lane = 0;
                 result.redirect_pc = result.lane0.target;
-            }else if(result.lane0_is_control_flow && result.lane1.taken && result.lane1.btb_hit)
+            }else if(result.lane1_is_control_flow && result.lane1.taken && result.lane1.btb_hit)
             {
                 result.redirect = true;
                 result.redirect_lane = 1;
