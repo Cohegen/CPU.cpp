@@ -20,30 +20,6 @@ The Single-Cycle CPU executes each instruction in a **single clock cycle**. Ever
 
 ## Architecture & Datapath Stages
 
-Although executed within one continuous clock period, the datapath logically flows through five combinational phases:
-
-```
-[ PC ] ---> [ Instruction Memory ] ---> [ Instruction Decoder & Control Unit ]
-                                                     |
-                                                     v
-                                            [ Register File ]
-                                            /               \
-                                      [ Read Data 1 ]    [ Read Data 2 ]
-                                            |               |  (or Immediate)
-                                            v               v
-                                            [      ALU      ]
-                                                    |
-                                      +-------------+-------------+
-                                      |                           |
-                                      v                           v
-                              [ Data Memory ]            [ ALU Direct Out ]
-                                      |                           |
-                                      +-------------> [ Mux ] <---+
-                                                        |
-                                                        v
-                                             [ Write Back to Reg ]
-```
-
 ### 1. Instruction Fetch (IF)
 - **Program Counter (`ProgramCounter`)**: Holds the current 32-bit instruction address. Updated every clock cycle when `pc_enable` is HIGH.
 - **Instruction Memory (`InstructionMemory`)**: Asynchronously outputs the 32-bit instruction word pointed to by `PC`.
