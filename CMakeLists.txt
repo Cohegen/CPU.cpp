@@ -443,3 +443,15 @@ target_link_libraries(BranchPredictionUnitTests
 
 add_test(NAME BranchPredictionUnitTests COMMAND BranchPredictionUnitTests)
 
+# End-to-end branch misprediction integration tests
+add_executable(BranchMispredictionIntegrationTests
+    tests/superscalar/BranchMispredictionIntegrationTests.cpp
+)
+
+target_link_libraries(BranchMispredictionIntegrationTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME BranchMispredictionIntegrationTests COMMAND BranchMispredictionIntegrationTests)
+

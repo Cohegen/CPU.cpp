@@ -51,6 +51,8 @@ namespace cpu
             entry.memory_write = bundle.memory_write;
             entry.control_flow = bundle.control_flow;
             entry.rob_index = rob_index;
+            entry.predicted_taken = bundle.prediction.predicted_taken;
+            entry.predicted_target = bundle.prediction.predicted_target;
             entry.halt = bundle.halt;
 
             if (prf_ != nullptr)
@@ -86,7 +88,11 @@ namespace cpu
 
         // Single instruction dispatch
         [[nodiscard]]
-        bool dispatch(const RenameBundle& input, ROBIndex& rob_index) noexcept
+        bool dispatch(
+            const RenameBundle& input,
+            ROBIndex& rob_index,
+            const RegisterAliasTable::Checkpoint* checkpoint = nullptr
+        ) noexcept
         {
             if (!input.valid)
             {
@@ -102,7 +108,7 @@ namespace cpu
                 return false;
             }
 
-            if (!rob_.allocate(input, rob_index))
+            if (!rob_.allocate(input, rob_index, checkpoint))
             {
                 return false;
             }
@@ -120,10 +126,13 @@ namespace cpu
         }
 
         [[nodiscard]]
-        bool dispatch(const RenameBundle& input) noexcept
+        bool dispatch(
+            const RenameBundle& input,
+            const RegisterAliasTable::Checkpoint* checkpoint = nullptr
+        ) noexcept
         {
             ROBIndex rob_index = 0;
-            return dispatch(input, rob_index);
+            return dispatch(input, rob_index, checkpoint);
         }
 
         // 2-wide dispatch

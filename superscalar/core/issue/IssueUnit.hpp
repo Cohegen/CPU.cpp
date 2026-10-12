@@ -73,6 +73,9 @@ IssueUnit::issue(IssueQueue<Capacity>& issue_queue)
 
         request.rob_index = entry->rob_index;
 
+        request.predicted_taken = entry->predicted_taken;
+        request.predicted_target = entry->predicted_target;
+
         request.halt = entry->halt;
 
         issue_queue.mark_issued(entry);

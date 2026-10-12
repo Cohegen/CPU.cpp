@@ -192,7 +192,9 @@ public:
         res.pc = static_cast<std::uint32_t>(pc_.read_value());
         res.opcode = opcode_;
         res.taken = actual_taken_;
+        res.target = actual_target_;
         res.target_pc = actual_target_;
+        res.fallthrough = fallthrough_pc_;
         res.fallthrough_pc = fallthrough_pc_;
         res.next_pc = next_pc_;
         res.predicted_taken = predicted_taken_;

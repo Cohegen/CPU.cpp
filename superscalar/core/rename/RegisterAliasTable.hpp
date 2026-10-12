@@ -46,6 +46,16 @@ namespace cpu
             return checkpoints_.size();
         }
 
+        [[nodiscard]]
+        const Checkpoint* latest_checkpoint() const noexcept
+        {
+            if (checkpoints_.empty())
+            {
+                return nullptr;
+            }
+            return &checkpoints_.back();
+        }
+
         void restore() noexcept
         {
             if (checkpoints_.empty())

@@ -1,6 +1,16 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+
+#include "../../include/isa/Opcode.hpp"
+#include "../decode/DecodeTypes.hpp"
+
 namespace cpu {
     struct ExecutionRequest
     {
+        using PhysicalRegister = std::uint8_t;
+
         bool valid{false};
         std::uint32_t pc{};
         std::uint32_t instruction{};
@@ -31,7 +41,4 @@ namespace cpu {
         bool predicted_taken{false};
         std::uint32_t predicted_target{};
     };
-
-  
-
 }

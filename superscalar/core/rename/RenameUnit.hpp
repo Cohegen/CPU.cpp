@@ -99,6 +99,7 @@ namespace cpu
             output.memory_read = input.memory_read;
             output.memory_write = input.memory_write;
             output.control_flow = input.control_flow;
+            output.prediction = input.prediction;
             output.halt = input.halt;
 
             // Source register renaming: translated through RAT

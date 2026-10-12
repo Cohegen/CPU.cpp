@@ -16,9 +16,6 @@
 #include "../../../include/isa/InstructionFormat.hpp"
 #endif
 
-#include "../decode/DecodeTypes.hpp"
-#include "PhysicalRegisterFreeList.hpp"
-
 #if __has_include("superscalar/core/branch/BranchPredictionUnit.hpp")
 #include "superscalar/core/branch/BranchPredictionUnit.hpp"
 #elif __has_include("branch/BranchPredictionUnit.hpp")
@@ -28,6 +25,9 @@
 #else
 #include "../branch/BranchPredictionUnit.hpp"
 #endif
+
+#include "../decode/DecodeTypes.hpp"
+#include "PhysicalRegisterFreeList.hpp"
 
 namespace cpu
 {

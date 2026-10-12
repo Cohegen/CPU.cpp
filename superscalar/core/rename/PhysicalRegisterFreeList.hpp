@@ -3,7 +3,7 @@
 #include "RegisterAliasTable.hpp"
 #include <cstddef>
 #include <cstdint>
-#include <queue>
+#include <deque>
 
 namespace cpu
 {
@@ -26,14 +26,11 @@ namespace cpu
             std::size_t initially_mapped_registers = 16
         )
         {
-            while (!free_registers_.empty())
-            {
-                free_registers_.pop();
-            }
+            free_registers_.clear();
 
             for (std::size_t i = initially_mapped_registers; i < physical_register_count; ++i)
             {
-                free_registers_.push(static_cast<PhysicalRegister>(i));
+                free_registers_.push_back(static_cast<PhysicalRegister>(i));
             }
         }
 
@@ -63,7 +60,7 @@ namespace cpu
                 return INVALID_REGISTER;
             }
             const PhysicalRegister physical_register = free_registers_.front();
-            free_registers_.pop();
+            free_registers_.pop_front();
             return physical_register;
         }
 
@@ -73,10 +70,10 @@ namespace cpu
             {
                 return;
             }
-            free_registers_.push(physical_register);
+            free_registers_.push_front(physical_register);
         }
 
     private:
-        std::queue<PhysicalRegister> free_registers_;
+        std::deque<PhysicalRegister> free_registers_;
     };
 }

@@ -12,7 +12,7 @@ state should be discarded
 #include "BranchResult.hpp"
 #include "../rename/RegisterAliasTable.hpp"
 #include "../rename/PhysicalRegisterFreeList.hpp"
-#include "../rob/ReOrderBuffer.hpp"
+#include "../dispatch/ReOrderBuffer.hpp"
 #include "../issue/IssueQueue.hpp"
 
 namespace cpu
@@ -84,15 +84,21 @@ public:
         if (!branch_entry->valid)
             return false;
 
-        if (!branch_entry->branch)
+        const RegisterAliasTable::Checkpoint* cp_to_restore = nullptr;
+        if (branch_entry->has_checkpoint)
+        {
+            cp_to_restore = &branch_entry->checkpoint;
+        }
+        else if (rat.checkpoint_count() > 0)
+        {
+            cp_to_restore = rat.latest_checkpoint();
+        }
+
+        if (cp_to_restore == nullptr || !cp_to_restore->valid)
             return false;
 
-        if (!branch_entry->has_checkpoint)
-            return false;
-
-       
         // 1. Restore RAT
-        rat.restore(branch_entry->checkpoint);
+        rat.restore(*cp_to_restore);
 
         // Squash younger ROB entries
         std::vector<typename ROB::Index> squashed_indices;
