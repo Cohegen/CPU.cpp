@@ -106,8 +106,3 @@ The heart of the Multi-Cycle CPU is the **FSM Control Unit** (`FSMControlUnit`),
 
 ---
 
-## Key Advantages Over Single-Cycle
-
-1. **Hardware Efficiency**: Unified memory (instead of separate instruction and data memories) and a single shared ALU (no separate PC incrementers or branch adders).
-2. **Shorter Cycle Time**: Clock period is governed only by the single longest functional unit (e.g. Memory access or ALU latency) rather than the sum of all units.
-3. **Variable Timing**: Fast instructions (like branches and stores) complete in 3–4 cycles without waiting for the 5-cycle worst case needed by loads.
