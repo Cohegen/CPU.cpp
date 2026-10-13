@@ -63,6 +63,7 @@ namespace cpu
             entry.opcode = bundle.opcode;
 
             entry.register_write = bundle.register_write;
+            entry.architectural_rd = bundle.rd;
 
             entry.physical_rd = bundle.physical_rd;
             entry.old_physical_rd = bundle.old_physical_rd;

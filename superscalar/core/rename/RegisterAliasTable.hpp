@@ -56,6 +56,14 @@ namespace cpu
             return &checkpoints_.back();
         }
 
+        void pop_checkpoint() noexcept
+        {
+            if (!checkpoints_.empty())
+            {
+                checkpoints_.pop_back();
+            }
+        }
+
         void restore() noexcept
         {
             if (checkpoints_.empty())

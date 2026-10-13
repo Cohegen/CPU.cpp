@@ -73,6 +73,15 @@ namespace cpu
             free_registers_.push_front(physical_register);
         }
 
+        void release_back(PhysicalRegister physical_register) noexcept
+        {
+            if (physical_register == INVALID_REGISTER)
+            {
+                return;
+            }
+            free_registers_.push_back(physical_register);
+        }
+
     private:
         std::deque<PhysicalRegister> free_registers_;
     };

@@ -31,6 +31,7 @@ namespace cpu
 
         //destination
         bool register_write{false};
+        Register architectural_rd{Register::R0};
         PhysicalRegister physical_rd{0};
         PhysicalRegister old_physical_rd{0};
 

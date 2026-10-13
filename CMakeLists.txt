@@ -455,3 +455,15 @@ target_link_libraries(BranchMispredictionIntegrationTests
 
 add_test(NAME BranchMispredictionIntegrationTests COMMAND BranchMispredictionIntegrationTests)
 
+# In-order commit and architectural state retirement tests
+add_executable(CommitUnitTests
+    tests/superscalar/CommitUnitTests.cpp
+)
+
+target_link_libraries(CommitUnitTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME CommitUnitTests COMMAND CommitUnitTests)
+
