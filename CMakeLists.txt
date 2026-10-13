@@ -31,6 +31,8 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/issue"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/execution"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/branch"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/commit"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/memory/data"
 )
 
 add_executable(cpu_cpp
@@ -466,4 +468,16 @@ target_link_libraries(CommitUnitTests
 )
 
 add_test(NAME CommitUnitTests COMMAND CommitUnitTests)
+
+# Phase 2: Load/Store Queue & Memory Disambiguation tests
+add_executable(LSQMemoryTests
+    tests/superscalar/LSQMemoryTests.cpp
+)
+
+target_link_libraries(LSQMemoryTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME LSQMemoryTests COMMAND LSQMemoryTests)
 
