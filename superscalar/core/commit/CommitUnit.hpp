@@ -113,7 +113,7 @@ namespace cpu
                 ev.store = committed_rob_entry.memory_write;
                 ev.halt = committed_rob_entry.halt;
 
-                // 1. Architectural Register File (ARF) vs PRF Commit
+                // Architectural Register File (ARF) vs PRF Commit
                 if (committed_rob_entry.register_write)
                 {
                     const auto val = prf.read(committed_rob_entry.physical_rd);
@@ -127,13 +127,13 @@ namespace cpu
                     }
                 }
 
-                // 2. Branch Retirement: Pop/deallocate RAT checkpoint
+                // Branch Retirement: Pop/deallocate RAT checkpoint
                 if (committed_rob_entry.branch && committed_rob_entry.has_checkpoint)
                 {
                     rat.pop_checkpoint();
                 }
 
-                // 3. Store Buffer / Memory Commit
+                // Store Buffer / Memory Commit
                 if (committed_rob_entry.memory_write && store_buffer != nullptr)
                 {
                     store_buffer->mark_committed(committed_rob_entry.rob_index);
