@@ -274,15 +274,6 @@ public:
                     captured_entry, captured_entry.predicted_taken, captured_entry.predicted_target
                 );
 
-                std::cout << "Branch eval: pc=" << captured_entry.pc
-                          << " op=" << static_cast<int>(captured_entry.opcode)
-                          << " rs1_val=" << captured_entry.rs1_value
-                          << " rs2_val=" << captured_entry.rs2_value
-                          << " pred=" << captured_entry.predicted_taken
-                          << " actual=" << b_res.taken
-                          << " mispred=" << b_res.mispredicted
-                          << std::endl;
-
                 // Update predictor with actual branch outcome
                 predictor_.update(b_res.pc, b_res.taken, b_res.target_pc);
 

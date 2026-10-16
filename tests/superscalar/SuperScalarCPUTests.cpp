@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "../../superscalar/core/SuperScalarCPU.hpp"
+#include "../../superscalar/datapath/SuperScalarCPU.hpp"
 #include "../../include/isa/Opcode.hpp"
 #include "../../include/isa/Registers.hpp"
 

@@ -136,7 +136,7 @@ namespace cpu
                 // Store Buffer / Memory Commit
                 if (committed_rob_entry.memory_write && store_buffer != nullptr)
                 {
-                    store_buffer->mark_committed(committed_rob_entry.rob_index);
+                    (void)store_buffer->mark_committed(committed_rob_entry.rob_index);
                 }
 
                 if (committed_rob_entry.halt)
