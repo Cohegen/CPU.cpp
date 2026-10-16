@@ -17,6 +17,7 @@
 #include "../components/SingleCycleCPU.hpp"
 #include "../components/MultiCycleCPU.hpp"
 #include "../components/PipelinedCPU.hpp"
+#include "../components/SuperScalarCPU.hpp"
 #include "../components/CPU.hpp"
 #include "../include/isa/Opcode.hpp"
 #include "../include/isa/Registers.hpp"
@@ -97,8 +98,23 @@ void test_pipelined_wrapper() {
     std::cout << "  [PASS] PipelinedCPU cycles: " << cpu.cycles() << "\n";
 }
 
+void test_superscalar_wrapper() {
+    std::cout << "[Test 4] Testing SuperScalarCPU wrapper...\n";
+    cpu::SuperScalarCPU cpu;
+    cpu.reset();
+    cpu.load_program(make_test_program());
+    cpu.run();
+
+    assert(cpu.halted());
+    assert(cpu.read_register(cpu::Register::R1) == 10);
+    assert(cpu.read_register(cpu::Register::R2) == 20);
+    assert(cpu.read_register(cpu::Register::R3) == 30);
+    assert(cpu.read_register(cpu::Register::R4) == 20);
+    std::cout << "  [PASS] SuperScalarCPU cycles: " << cpu.cycles() << "\n";
+}
+
 void test_cpu_alias_backward_compatibility() {
-    std::cout << "[Test 4] Testing cpu::CPU backward compatibility alias...\n";
+    std::cout << "[Test 5] Testing cpu::CPU backward compatibility alias...\n";
     cpu::CPU cpu;
     cpu.reset();
     cpu.load_program(make_test_program());
@@ -110,7 +126,7 @@ void test_cpu_alias_backward_compatibility() {
 }
 
 void test_memory_wrappers() {
-    std::cout << "[Test 5] Testing memory read and write across CPU wrappers...\n";
+    std::cout << "[Test 6] Testing memory read and write across CPU wrappers...\n";
     {
         cpu::SingleCycleCPU cpu;
         cpu.reset();
@@ -129,6 +145,12 @@ void test_memory_wrappers() {
         cpu.write_memory(0x80, 0x9ABC);
         assert(cpu.read_memory(0x80) == 0x9ABC);
     }
+    {
+        cpu::SuperScalarCPU cpu;
+        cpu.reset();
+        cpu.write_memory(0x80, 0xDEF0);
+        assert(cpu.read_memory(0x80) == 0xDEF0);
+    }
     std::cout << "  [PASS] Memory read/write verified on all CPU wrappers.\n";
 }
 
@@ -142,6 +164,7 @@ int main() {
     test_single_cycle_wrapper();
     test_multi_cycle_wrapper();
     test_pipelined_wrapper();
+    test_superscalar_wrapper();
     test_cpu_alias_backward_compatibility();
     test_memory_wrappers();
 

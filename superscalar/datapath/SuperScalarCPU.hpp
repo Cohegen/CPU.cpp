@@ -78,7 +78,7 @@ public:
     using ARF = ArchitecturalRegisterFile<ARFCount>;
     using LSQ = LoadStoreQueue<LSQCapacity>;
     using SB  = StoreBuffer<StoreBufferCapacity>;
-    using DM  = DataMemory<DataMemoryWords>;
+    using DM  = SuperScalarDataMemory<DataMemoryWords>;
     using BPU = BranchPredictionUnit<BPTableSize>;
     using Predictor = BranchPredictor<BPTableSize>;
     using IM  = SuperScalarInstructionMemory<32, ROMAddressWidth, 32>;
@@ -127,6 +127,8 @@ public:
         cycles_ = 0;
         halted_ = false;
         halt_dispatched_ = false;
+        branches_executed_ = 0;
+        branch_mispredictions_ = 0;
 
         // Reset stateful hardware components
         rob_.reset();
@@ -174,6 +176,12 @@ public:
         reset();
     }
 
+    void load_program(const std::vector<std::uint32_t>& words) noexcept
+    {
+        std::vector<std::size_t> widened(words.begin(), words.end());
+        load_program(widened);
+    }
+
     void set_data_word(std::size_t word_index, std::uint32_t value) noexcept
     {
         data_memory_.write_word(word_index, value);
@@ -192,6 +200,69 @@ public:
     }
 
     [[nodiscard]]
+    std::uint32_t read_register(Register reg) const noexcept
+    {
+        return arf_.read(reg);
+    }
+
+    void write_register(Register reg, std::uint32_t value) noexcept
+    {
+        arf_.write(reg, value);
+        const auto p = rat_.lookup(reg);
+        prf_.write(p, value);
+        prf_.set_ready(p, true);
+    }
+
+    [[nodiscard]]
+    std::uint32_t read_memory(std::size_t address) const noexcept
+    {
+        return data_memory_.read_word(address);
+    }
+
+    void write_memory(std::size_t address, std::uint32_t value) noexcept
+    {
+        data_memory_.write_word(address, value);
+    }
+
+    [[nodiscard]]
+    std::uint32_t pc() const noexcept
+    {
+        return static_cast<std::uint32_t>(fetch_pc0_.read_value());
+    }
+
+    [[nodiscard]]
+    std::uint64_t cycles() const noexcept
+    {
+        return cycles_;
+    }
+
+    [[nodiscard]]
+    double ipc() const noexcept
+    {
+        return cycles_ > 0 ? static_cast<double>(committed_instruction_count()) / static_cast<double>(cycles_) : 0.0;
+    }
+
+    [[nodiscard]]
+    std::size_t branches_executed() const noexcept
+    {
+        return branches_executed_;
+    }
+
+    [[nodiscard]]
+    std::size_t branch_mispredictions() const noexcept
+    {
+        return branch_mispredictions_;
+    }
+
+    [[nodiscard]]
+    double branch_accuracy() const noexcept
+    {
+        return branches_executed_ > 0
+            ? 100.0 * (1.0 - static_cast<double>(branch_mispredictions_) / static_cast<double>(branches_executed_))
+            : 100.0;
+    }
+
+    [[nodiscard]]
     bool halted() const noexcept
     {
         return halted_;
@@ -205,6 +276,12 @@ public:
 
     [[nodiscard]]
     std::size_t committed_instruction_count() const noexcept
+    {
+        return commit_unit_.committed_instruction_count();
+    }
+
+    [[nodiscard]]
+    std::size_t committed_instructions() const noexcept
     {
         return commit_unit_.committed_instruction_count();
     }
@@ -274,6 +351,8 @@ public:
                     captured_entry, captured_entry.predicted_taken, captured_entry.predicted_target
                 );
 
+                ++branches_executed_;
+
                 // Update predictor with actual branch outcome
                 predictor_.update(b_res.pc, b_res.taken, b_res.target_pc);
 
@@ -283,6 +362,7 @@ public:
                 // Check for misprediction
                 if (b_res.mispredicted)
                 {
+                    ++branch_mispredictions_;
                     stats.branch_mispredicted = true;
                     stats.redirect_pc = b_res.redirect_pc;
                     halt_dispatched_ = false;
@@ -650,6 +730,8 @@ public:
     std::size_t cycles_{0};
     bool halted_{false};
     bool halt_dispatched_{false};
+    std::size_t branches_executed_{0};
+    std::size_t branch_mispredictions_{0};
 };
 
 } // namespace cpu

@@ -6,6 +6,7 @@
 #include "components/SingleCycleCPU.hpp"
 #include "components/MultiCycleCPU.hpp"
 #include "components/PipelinedCPU.hpp"
+#include "components/SuperScalarCPU.hpp"
 #include "components/CPU.hpp"
 
 namespace py = pybind11;
@@ -130,4 +131,13 @@ PYBIND11_MODULE(_pycpu_core, m) {
     using PipelinedCPU32 = cpu::PipelinedCPU<32, 32, 32, 4, 8, 8>;
     py::class_<PipelinedCPU32> pipelined_cls(m, "NativePipelinedCPU32");
     bind_cpu_interface<PipelinedCPU32>(pipelined_cls);
+
+    // NativeSuperScalarCPU32
+    using SuperScalarCPU32 = cpu::SuperScalarCPU<>;
+    py::class_<SuperScalarCPU32> superscalar_cls(m, "NativeSuperScalarCPU32");
+    bind_cpu_interface<SuperScalarCPU32>(superscalar_cls);
+    superscalar_cls.def("ipc", &SuperScalarCPU32::ipc)
+                   .def("branch_accuracy", &SuperScalarCPU32::branch_accuracy)
+                   .def("branches_executed", &SuperScalarCPU32::branches_executed)
+                   .def("branch_mispredictions", &SuperScalarCPU32::branch_mispredictions);
 }

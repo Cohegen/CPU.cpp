@@ -18,6 +18,9 @@
 
 using namespace cpu;
 
+template <std::size_t SizeWords = 1024>
+using DataMemory = SuperScalarDataMemory<SizeWords>;
+
 // ============================================================
 // Test 1: Load from Data Memory (no forwarding)
 // ============================================================

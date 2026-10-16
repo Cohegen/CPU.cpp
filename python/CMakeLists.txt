@@ -47,6 +47,18 @@ target_include_directories(_pycpu_core PRIVATE
     ${CPU_ROOT}/multi_cycle_cpu/datapath
     ${CPU_ROOT}/pipelined_cpu
     ${CPU_ROOT}/pipelined_cpu/datapath
+    ${CPU_ROOT}/superscalar/core
+    ${CPU_ROOT}/superscalar/core/decode
+    ${CPU_ROOT}/superscalar/core/fetch
+    ${CPU_ROOT}/superscalar/core/memory
+    ${CPU_ROOT}/superscalar/core/rename
+    ${CPU_ROOT}/superscalar/core/dispatch
+    ${CPU_ROOT}/superscalar/core/issue
+    ${CPU_ROOT}/superscalar/core/execution
+    ${CPU_ROOT}/superscalar/core/branch
+    ${CPU_ROOT}/superscalar/core/commit
+    ${CPU_ROOT}/superscalar/core/memory/data
+    ${CPU_ROOT}/superscalar/datapath
 )
 
 target_link_libraries(_pycpu_core PRIVATE

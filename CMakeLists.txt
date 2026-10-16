@@ -494,3 +494,27 @@ target_link_libraries(SuperScalarCPUTests
 
 add_test(NAME SuperScalarCPUTests COMMAND SuperScalarCPUTests)
 
+# Data Cache tests
+add_executable(DataCacheTests
+    tests/superscalar/DataCacheTests.cpp
+)
+
+target_link_libraries(DataCacheTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME DataCacheTests COMMAND DataCacheTests)
+
+# Phase 3: Superscalar Benchmark Suite
+add_executable(SuperScalarBenchmarkTests
+    tests/superscalar/SuperScalarBenchmarkTests.cpp
+)
+
+target_link_libraries(SuperScalarBenchmarkTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME SuperScalarBenchmarkTests COMMAND SuperScalarBenchmarkTests)
+

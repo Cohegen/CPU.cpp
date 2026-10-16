@@ -8,10 +8,10 @@
 namespace cpu
 {
     template<std::size_t SizeWords = 1024>
-    class DataMemory
+    class SuperScalarDataMemory
     {
     public:
-        DataMemory() noexcept
+        SuperScalarDataMemory() noexcept
         {
             reset();
         }

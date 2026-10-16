@@ -32,7 +32,7 @@ public:
     using PRF = PhysicalRegisterFile<PRFCount>;
     using LSQ = LoadStoreQueue<LSQCapacity>;
     using SB  = StoreBuffer<StoreBufferCapacity>;
-    using DM  = DataMemory<DataMemorySize>;
+    using DM  = SuperScalarDataMemory<DataMemorySize>;
 
     struct MemoryResult
     {

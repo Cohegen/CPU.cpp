@@ -3,6 +3,7 @@
 #include "SingleCycleCPU.hpp"
 #include "MultiCycleCPU.hpp"
 #include "PipelinedCPU.hpp"
+#include "SuperScalarCPU.hpp"
 
 namespace cpu {
 
