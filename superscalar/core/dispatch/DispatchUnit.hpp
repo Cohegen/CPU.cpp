@@ -67,7 +67,7 @@ namespace cpu
                     entry.rs1_ready = true;
                 }
 
-                if (bundle.operand_b == OperandSource::REGISTER)
+                if (bundle.operand_b == OperandSource::REGISTER || bundle.memory_write)
                 {
                     entry.rs2_ready = prf_->ready(bundle.physical_rs2);
                     entry.rs2_value = prf_->read(bundle.physical_rs2);
@@ -80,7 +80,7 @@ namespace cpu
             else
             {
                 entry.rs1_ready = (bundle.operand_a != OperandSource::REGISTER);
-                entry.rs2_ready = (bundle.operand_b != OperandSource::REGISTER);
+                entry.rs2_ready = (bundle.operand_b != OperandSource::REGISTER && !bundle.memory_write);
             }
 
             return entry;

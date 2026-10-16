@@ -481,3 +481,15 @@ target_link_libraries(LSQMemoryTests
 
 add_test(NAME LSQMemoryTests COMMAND LSQMemoryTests)
 
+# Phase 3: Top-Level Superscalar Core Assembly tests
+add_executable(SuperScalarCPUTests
+    tests/superscalar/SuperScalarCPUTests.cpp
+)
+
+target_link_libraries(SuperScalarCPUTests
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME SuperScalarCPUTests COMMAND SuperScalarCPUTests)
+

@@ -71,28 +71,48 @@ public:
             auto* entry = issue_queue_.entry(index);
             if (entry != nullptr && ready_for_memory_execution(*entry))
             {
-                // Capture entry data before removing from IQ
-                IssueQueueEntry captured = *entry;
-                issue_queue_.remove(index);
+                if (entry->memory_read)
+                {
+                    const std::uint32_t address = calculate_address(*entry);
+                    lsq_.set_address(entry->rob_index, address);
+                    auto fwd = lsq_.execute_load(entry->rob_index);
+                    if (fwd.must_wait)
+                    {
+                        // Must wait for older unresolved store — skip this load for now
+                        continue;
+                    }
 
-                MemoryResult result;
-                if (captured.memory_read)
-                {
-                    result = process_load(captured);
-                }
-                else if (captured.memory_write)
-                {
-                    result = process_store(captured);
-                }
+                    IssueQueueEntry captured = *entry;
+                    issue_queue_.remove(index);
 
-                if (result.valid)
-                {
+                    MemoryResult result{};
+                    result.valid = true;
+                    result.is_load = true;
+                    result.rob_index = captured.rob_index;
+                    result.physical_rd = captured.physical_rd;
+                    result.address = address;
+                    result.data = fwd.hit ? fwd.data : data_memory_.read(address).value_or(0);
+
+                    lsq_.complete_load(captured.rob_index, result.data);
+                    lsq_.mark_executed(captured.rob_index);
+
                     write_back(result);
                     results.push_back(result);
+                    break;
                 }
+                else if (entry->memory_write)
+                {
+                    IssueQueueEntry captured = *entry;
+                    issue_queue_.remove(index);
 
-                // Single memory port: only one op per cycle
-                break;
+                    MemoryResult result = process_store(captured);
+                    if (result.valid)
+                    {
+                        write_back(result);
+                        results.push_back(result);
+                    }
+                    break;
+                }
             }
         }
 
