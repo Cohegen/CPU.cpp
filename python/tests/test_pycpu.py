@@ -91,6 +91,29 @@ class TestPyCPU(unittest.TestCase):
         self.assertEqual(cpu.registers["r4"], 25)
         self.assertGreater(cycles, 0)
 
+    def test_superscalar_architecture(self):
+        cpu = CPU(architecture="superscalar")
+        cpu.reset()
+        self.assertEqual(cpu.architecture, "superscalar")
+
+        cpu.load_assembly("""
+            addi r1, r0, 15
+            addi r2, r0, 25
+            add  r3, r1, r2
+            sub  r4, r3, r1
+            halt
+        """)
+
+        cycles = cpu.run()
+        self.assertTrue(cpu.is_halted)
+        self.assertEqual(cpu.registers["r1"], 15)
+        self.assertEqual(cpu.registers["r2"], 25)
+        self.assertEqual(cpu.registers["r3"], 40)
+        self.assertEqual(cpu.registers["r4"], 25)
+        self.assertGreater(cycles, 0)
+        self.assertGreater(cpu.ipc, 0.0)
+        self.assertGreaterEqual(cpu.branch_accuracy, 0.0)
+
     def test_cross_architecture_comparison(self):
         program_asm = """
             addi r1, r0, 10
@@ -185,6 +208,21 @@ class TestPyCPU(unittest.TestCase):
             self.assertEqual(cpu.memory[0x85], 200)
             self.assertEqual(cpu.memory[0x86], 300)
 
+    def test_superscalar_memory(self):
+        cpu = CPU(architecture="superscalar")
+        cpu.reset()
+
+        # Direct memory write & read (byte address 0x80 = 128)
+        cpu.memory[0x80] = 0xBEEF
+        self.assertEqual(cpu.memory[0x80], 0xBEEF)
+        self.assertEqual(cpu.read_memory(0x80), 0xBEEF)
+
+        # Word-aligned byte addresses (0x84, 0x88)
+        cpu.write_memory(0x84, 100)
+        cpu.write_memory(0x88, 200)
+        self.assertEqual(cpu.read_memory(0x84), 100)
+        self.assertEqual(cpu.read_memory(0x88), 200)
+
     def test_memory_load_store_assembly(self):
         for arch in ("single_cycle", "multi_cycle", "pipelined"):
             cpu = CPU(architecture=arch)
@@ -205,6 +243,24 @@ class TestPyCPU(unittest.TestCase):
             self.assertEqual(cpu.registers["r3"], 42)
             self.assertEqual(cpu.memory[128], 42)
 
+    def test_superscalar_memory_load_store_assembly(self):
+        cpu = CPU(architecture="superscalar")
+        cpu.reset()
+
+        # In superscalar hardware byte-addressing, word index 32 = byte address 128 (32 * 4)
+        cpu.load_assembly("""
+            addi r1, r0, 128
+            addi r2, r0, 42
+            sw   r2, 0(r1)
+            lw   r3, 0(r1)
+            halt
+        """)
+        cpu.run()
+        self.assertTrue(cpu.is_halted)
+        self.assertEqual(cpu.registers["r2"], 42)
+        self.assertEqual(cpu.registers["r3"], 42)
+        self.assertEqual(cpu.memory[32], 42)
+
     def test_loop_program_with_labels(self):
         # Calculate sum of 1..5 = 15 using a loop with labels
         asm = """
@@ -216,7 +272,7 @@ class TestPyCPU(unittest.TestCase):
             bnez r1, loop    ; if counter != 0 goto loop
             halt
         """
-        for arch in ("single_cycle", "multi_cycle", "pipelined"):
+        for arch in ("single_cycle", "multi_cycle", "pipelined", "superscalar"):
             cpu = CPU(architecture=arch)
             cpu.reset()
             cpu.load_assembly(asm)

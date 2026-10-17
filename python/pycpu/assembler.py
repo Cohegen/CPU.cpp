@@ -53,6 +53,15 @@ def _strip_comments(line: str) -> str:
     return re.sub(r"[;#].*$", "", line).strip()
 
 
+def _calc_branch_offset(target_token: str, current_pc: int, symbols: Dict[str, int], architecture: str) -> int:
+    if target_token in symbols:
+        target_pc = symbols[target_token]
+        if architecture in ("single_cycle", "superscalar"):
+            return target_pc - current_pc
+        return target_pc - (current_pc + 1)
+    return _parse_int(target_token)
+
+
 def assemble_instruction(
     line: str,
     current_pc: int = 0,
@@ -83,12 +92,7 @@ def assemble_instruction(
         if len(args) != 2:
             raise ValueError(f"beqz expects 2 operands (rs, target), got {len(args)}: '{line}'")
         rs = _parse_reg(args[0])
-        target_token = args[1]
-        if target_token in symbols:
-            target_pc = symbols[target_token]
-            imm = target_pc - current_pc if architecture == "single_cycle" else target_pc - (current_pc + 1)
-        else:
-            imm = _parse_int(target_token)
+        imm = _calc_branch_offset(args[1], current_pc, symbols, architecture)
         return encode_b_type(Opcode.BEQ, rs, Register.R0, imm & 0x3FFFF)
 
     # Pseudo-instruction: bnez rs, target -> bne rs, r0, target
@@ -96,24 +100,14 @@ def assemble_instruction(
         if len(args) != 2:
             raise ValueError(f"bnez expects 2 operands (rs, target), got {len(args)}: '{line}'")
         rs = _parse_reg(args[0])
-        target_token = args[1]
-        if target_token in symbols:
-            target_pc = symbols[target_token]
-            imm = target_pc - current_pc if architecture == "single_cycle" else target_pc - (current_pc + 1)
-        else:
-            imm = _parse_int(target_token)
+        imm = _calc_branch_offset(args[1], current_pc, symbols, architecture)
         return encode_b_type(Opcode.BNE, rs, Register.R0, imm & 0x3FFFF)
 
     # Pseudo-instruction: b target -> beq r0, r0, target
     elif op == "B":
         if len(args) != 1:
             raise ValueError(f"b expects 1 operand (target), got {len(args)}: '{line}'")
-        target_token = args[0]
-        if target_token in symbols:
-            target_pc = symbols[target_token]
-            imm = target_pc - current_pc if architecture == "single_cycle" else target_pc - (current_pc + 1)
-        else:
-            imm = _parse_int(target_token)
+        imm = _calc_branch_offset(args[0], current_pc, symbols, architecture)
         return encode_b_type(Opcode.BEQ, Register.R0, Register.R0, imm & 0x3FFFF)
 
     elif op == "NOP":
@@ -177,12 +171,7 @@ def assemble_instruction(
         opcode = getattr(Opcode, op)
         rs1 = _parse_reg(args[0])
         rs2 = _parse_reg(args[1])
-        target_token = args[2]
-        if target_token in symbols:
-            target_pc = symbols[target_token]
-            imm = target_pc - current_pc if architecture == "single_cycle" else target_pc - (current_pc + 1)
-        else:
-            imm = _parse_int(target_token)
+        imm = _calc_branch_offset(args[2], current_pc, symbols, architecture)
         return encode_b_type(opcode, rs1, rs2, imm & 0x3FFFF)
 
     elif op == "J":
@@ -218,6 +207,8 @@ def assemble(
     raw_lines = asm_text.strip().splitlines() if isinstance(asm_text, str) else asm_text
 
     # Pass 1: Parse labels and collect instructions with their source line and assigned PC
+    norm_arch = architecture.strip().lower().replace("-", "_")
+    pc_step = 4 if norm_arch == "superscalar" else 1
     symbols: Dict[str, int] = {}
     instructions: List[Tuple[int, int, str]] = []  # (pc, line_num, stmt)
     current_pc = 0
@@ -240,10 +231,9 @@ def assemble(
 
         if cleaned:
             instructions.append((current_pc, line_num, cleaned))
-            current_pc += 1
+            current_pc += pc_step
 
     # Pass 2: Assemble instructions with symbol table
-    norm_arch = architecture.strip().lower().replace("-", "_")
     machine_code: List[int] = []
     for pc, line_num, stmt in instructions:
         try:

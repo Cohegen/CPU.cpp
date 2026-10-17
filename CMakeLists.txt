@@ -32,6 +32,7 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/execution"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/branch"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/commit"
+    "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/memory/instruction"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/memory/data"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/datapath"
 )

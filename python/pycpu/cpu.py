@@ -5,6 +5,7 @@ from ._pycpu_core import (
     NativeSingleCycleCPU32,
     NativeMultiCycleCPU32,
     NativePipelinedCPU32,
+    NativeSuperScalarCPU32,
 )
 from .assembler import assemble, _REG_MAP
 
@@ -70,9 +71,10 @@ class CPU:
       - 'single_cycle' (default): Single-Cycle CPU
       - 'multi_cycle': Autonomous Multi-Cycle CPU with FSM controller
       - 'pipelined': 5-stage Pipelined CPU with hazard handling & forwarding
+      - 'superscalar': 2-wide Out-of-Order Superscalar CPU with branch prediction & ROB
     """
 
-    SUPPORTED_ARCHITECTURES = ("single_cycle", "multi_cycle", "pipelined")
+    SUPPORTED_ARCHITECTURES = ("single_cycle", "multi_cycle", "pipelined", "superscalar")
 
     def __init__(self, architecture: str = "single_cycle"):
         norm_arch = architecture.strip().lower().replace("-", "_")
@@ -89,6 +91,8 @@ class CPU:
             self._native = NativeMultiCycleCPU32()
         elif norm_arch == "pipelined":
             self._native = NativePipelinedCPU32()
+        elif norm_arch == "superscalar":
+            self._native = NativeSuperScalarCPU32()
 
         self.registers = RegisterAccessor(self._native)
         self.memory = MemoryAccessor(self._native)
@@ -140,6 +144,20 @@ class CPU:
     def cycles(self) -> int:
         """Number of elapsed clock cycles."""
         return self._native.cycles()
+
+    @property
+    def ipc(self) -> float:
+        """Instructions Per Cycle (IPC)."""
+        if hasattr(self._native, "ipc"):
+            return float(self._native.ipc())
+        return 0.0
+
+    @property
+    def branch_accuracy(self) -> float:
+        """Branch prediction accuracy percentage (0.0 - 100.0)."""
+        if hasattr(self._native, "branch_accuracy"):
+            return float(self._native.branch_accuracy())
+        return 100.0
 
     def cpi(self, num_instructions: int) -> float:
         """Calculates Cycles Per Instruction (CPI)."""
