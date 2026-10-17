@@ -50,7 +50,7 @@ template <typename CPUType, typename PyClass>
 void bind_cpu_interface(PyClass& cls) {
     cls.def(py::init<>())
        .def("reset", &CPUType::reset)
-       .def("step", &CPUType::step)
+       .def("step", [](CPUType& cpu) { cpu.step(); })
        .def("run", &CPUType::run, py::arg("max_cycles") = 100000)
        .def("halted", &CPUType::halted)
        .def("load_program", [](CPUType& cpu, const std::vector<std::size_t>& p) { cpu.load_program(p); })
