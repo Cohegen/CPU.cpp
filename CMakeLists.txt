@@ -35,6 +35,7 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/memory/instruction"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/core/memory/data"
     "${CMAKE_CURRENT_SOURCE_DIR}/superscalar/datapath"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vector_cpu/core"
 )
 
 add_executable(cpu_cpp
@@ -518,4 +519,16 @@ target_link_libraries(SuperScalarBenchmarkTests
 )
 
 add_test(NAME SuperScalarBenchmarkTests COMMAND SuperScalarBenchmarkTests)
+
+# Vector CPU Tests
+add_executable(test_vector_register
+    tests/test_vector_register.cpp
+)
+
+target_link_libraries(test_vector_register
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_vector_register COMMAND test_vector_register)
 
