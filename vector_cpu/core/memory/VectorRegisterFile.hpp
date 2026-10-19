@@ -30,22 +30,7 @@ namespace detail
     }
 } // namespace detail
 
-/**
- * @brief Vector Register File
- * 
- * Hardware Architecture:
- * - Storage: NumRegisters (default 32) instances of VectorRegister<DataWidth> (default 128).
- * - Write Selection: An AddressWidth-to-NumRegisters decoder (default 5-to-32) combined with
- *   AND gates: WE_i = GlobalWE AND (WriteAddress == i) to enable exactly one register.
- * - Read Selection: Two independent multi-stage multiplexer trees (Read MUX 1 & Read MUX 2),
- *   each connecting to all 32 register outputs.
- * - Clock and Reset: Shared across all vector registers.
- * 
- * Evaluation order:
- *   1. Write-address decoding (decoder + AND stage)
- *   2. Vector register evaluation
- *   3. Read multiplexer trees
- */
+
 template <
     std::size_t NumRegisters = 32,
     std::size_t DataWidth = 128,
@@ -58,7 +43,7 @@ class VectorRegisterFile : public logic::Component
     static_assert(AddressWidth >= detail::clog2(NumRegisters), "AddressWidth is insufficient for NumRegisters.");
 
 public:
-    /// Constructor (Standard signal order matching architectural skeleton)
+   
     VectorRegisterFile(
         logic::Bus<AddressWidth>& read_addr1,
         logic::Bus<AddressWidth>& read_addr2,
