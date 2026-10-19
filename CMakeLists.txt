@@ -532,3 +532,15 @@ target_link_libraries(test_vector_register
 
 add_test(NAME test_vector_register COMMAND test_vector_register)
 
+add_executable(test_vector_register_file
+    tests/test_vector_register_file.cpp
+)
+
+target_link_libraries(test_vector_register_file
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_vector_register_file COMMAND test_vector_register_file)
+
+
