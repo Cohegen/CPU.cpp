@@ -522,7 +522,7 @@ add_test(NAME SuperScalarBenchmarkTests COMMAND SuperScalarBenchmarkTests)
 
 # Vector CPU Tests
 add_executable(test_vector_register
-    tests/test_vector_register.cpp
+    tests/vector/test_vector_register.cpp
 )
 
 target_link_libraries(test_vector_register
@@ -533,7 +533,7 @@ target_link_libraries(test_vector_register
 add_test(NAME test_vector_register COMMAND test_vector_register)
 
 add_executable(test_vector_register_file
-    tests/test_vector_register_file.cpp
+    tests/vector/test_vector_register_file.cpp
 )
 
 target_link_libraries(test_vector_register_file
@@ -544,3 +544,15 @@ target_link_libraries(test_vector_register_file
 add_test(NAME test_vector_register_file COMMAND test_vector_register_file)
 
 
+
+# MinimumUnit tests (vector_cpu configuration)
+add_executable(test_minimum_unit
+    tests/vector/test_minimum_unit.cpp
+)
+
+target_link_libraries(test_minimum_unit
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_minimum_unit COMMAND test_minimum_unit)

@@ -59,7 +59,7 @@ public:
         write_enable_(write_enable),
         reset_(reset),
         clock_(clock),
-        write_decoder_(write_addr_, decoded_lines_)
+        write_decoder_(write_addr_, write_enable_, register_write_enables_)
     {
         init_internal_hardware();
     }
@@ -80,19 +80,15 @@ public:
         write_enable_(write_enable),
         reset_(reset),
         clock_(clock),
-        write_decoder_(write_addr_, decoded_lines_)
+        write_decoder_(write_addr_, write_enable_, register_write_enables_)
     {
         init_internal_hardware();
     }
 
     void evaluate() noexcept override
     {
-        // 1. Evaluate write-address decoding
+        // 1. Evaluate write-address decoding with enable
         write_decoder_.evaluate();
-        for (auto& and_gate : we_and_gates_)
-        {
-            and_gate->evaluate();
-        }
 
         // 2. Evaluate all vector registers
         for (auto& reg : registers_)
