@@ -556,3 +556,16 @@ target_link_libraries(test_minimum_unit
 )
 
 add_test(NAME test_minimum_unit COMMAND test_minimum_unit)
+
+
+# VLMAXUnit tests (vector_cpu configuration)
+add_executable(test_vlmax_unit
+    tests/vector/test_vlmax_unit.cpp
+)
+
+target_link_libraries(test_vlmax_unit
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_vlmax_unit COMMAND test_vlmax_unit)
