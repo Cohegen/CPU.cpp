@@ -569,3 +569,15 @@ target_link_libraries(test_vlmax_unit
 )
 
 add_test(NAME test_vlmax_unit COMMAND test_vlmax_unit)
+
+# VectorConfigurationUnit tests (vector_cpu configuration)
+add_executable(test_vector_configuration_unit
+    tests/vector/test_vector_configuration_unit.cpp
+)
+
+target_link_libraries(test_vector_configuration_unit
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_vector_configuration_unit COMMAND test_vector_configuration_unit)
