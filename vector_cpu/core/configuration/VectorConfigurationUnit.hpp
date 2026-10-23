@@ -56,7 +56,7 @@ public:
         logic::Wire& clock,
         logic::Wire& configure
     ) : VectorConfigurationUnit(avl, sew, clock, configure, default_reset_)
-    {}
+{} 
 
     // Overload taking Clock& and Wire& reset
     VectorConfigurationUnit(
