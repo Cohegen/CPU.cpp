@@ -1,10 +1,8 @@
 #pragma once
 
-#include <cstddef>
 #include <logic/combinational/multiplexers/Mux.hpp>
 #include <logic/sequential/registers/register.hpp>
 #include <logic/signals/bus.hpp>
-#include <logic/signals/clock.hpp>
 #include <logic/signals/wire.hpp>
 #include <logic/signals/logicState.hpp>
 #include <logic/simulator/Component.hpp>
@@ -16,7 +14,6 @@ namespace cpu {
 
 class VectorConfigurationUnit : public logic::Component {
 public:
-    // Primary constructor taking Wire& clock and Wire& reset
     VectorConfigurationUnit(
         logic::Bus<8>& avl,
         logic::Bus<2>& sew,
@@ -45,49 +42,9 @@ public:
         vl_reg_in_.write(logic::LogicState::LOW);
         vtype_load_out_.write(logic::LogicState::LOW);
         vtype_reg_in_.write(logic::LogicState::LOW);
-        write_enable_.write(logic::LogicState::LOW);
-        valid_.write(logic::LogicState::LOW);
-    }
-
-    // Overload without explicit reset (default reset wire held LOW)
-    VectorConfigurationUnit(
-        logic::Bus<8>& avl,
-        logic::Bus<2>& sew,
-        logic::Wire& clock,
-        logic::Wire& configure
-    ) : VectorConfigurationUnit(avl, sew, clock, configure, default_reset_)
-{} 
-
-    // Overload taking Clock& and Wire& reset
-    VectorConfigurationUnit(
-        logic::Bus<8>& avl,
-        logic::Bus<2>& sew,
-        logic::Clock& clock,
-        logic::Wire& configure,
-        logic::Wire& reset
-    ) : VectorConfigurationUnit(avl, sew, clock_wire_, configure, reset)
-    {
-        clock_source_ = &clock;
-        clock_wire_.write(clock.state());
-    }
-
-    // Overload taking Clock& without explicit reset
-    VectorConfigurationUnit(
-        logic::Bus<8>& avl,
-        logic::Bus<2>& sew,
-        logic::Clock& clock,
-        logic::Wire& configure
-    ) : VectorConfigurationUnit(avl, sew, clock_wire_, configure, default_reset_)
-    {
-        clock_source_ = &clock;
-        clock_wire_.write(clock.state());
     }
 
     void evaluate_combinational() noexcept {
-        if (clock_source_) {
-            clock_wire_.write(clock_source_->state());
-        }
-
         // 1. Evaluate VLMAX combinational unit
         vlmax_unit_.evaluate();
 
@@ -164,18 +121,10 @@ public:
     [[nodiscard]] logic::Wire& valid() noexcept { return valid_; }
     [[nodiscard]] const logic::Wire& valid() const noexcept { return valid_; }
 
-    [[nodiscard]] logic::Wire& configure_valid() noexcept { return valid_; }
-    [[nodiscard]] const logic::Wire& configure_valid() const noexcept { return valid_; }
-
     [[nodiscard]] logic::Wire& write_enable() noexcept { return write_enable_; }
     [[nodiscard]] const logic::Wire& write_enable() const noexcept { return write_enable_; }
 
 private:
-    // Internal default signals if not provided externally
-    logic::Wire default_reset_{logic::LogicState::LOW};
-    logic::Wire clock_wire_{logic::LogicState::LOW};
-    logic::Clock* clock_source_{nullptr};
-
     // External inputs & control references
     logic::Bus<8>& avl_;
     logic::Bus<2>& sew_;
