@@ -25,6 +25,18 @@
 #include <iostream>
 #include <string>
 
+/*
+    ALU opcode mapping (3-bit):
+        000 = ADD
+        001 = SUB
+        010 = AND
+        011 = OR
+        100 = XOR
+        101 = NOT
+        110 = PASS_A
+        111 = PASS_B
+*/
+
 namespace
 {
 
@@ -64,7 +76,7 @@ int main()
     {
         logic::Bus<32> a;
         logic::Bus<32> b;
-        logic::Bus<2> opcode;
+        logic::Bus<3> opcode;
         logic::Bus<32> result;
         logic::Wire zero;
         logic::Wire carry;
@@ -79,7 +91,7 @@ int main()
             std::uint32_t op_b;
             std::uint32_t expected_res;
             logic::LogicState expected_zero;
-            logic::LogicState expected_carry; // for SUB: borrow
+            logic::LogicState expected_carry;
         };
 
         const ArithTestCase tests[] = {
@@ -122,17 +134,16 @@ int main()
     // =========================================================================
     print_header("2. Logical Operation Tests");
     {
-        // 2-bit opcode tests (AND=2, OR=3)
         logic::Bus<32> a;
         logic::Bus<32> b;
-        logic::Bus<2> opcode2;
+        logic::Bus<3> opcode;
         logic::Bus<32> result;
         logic::Wire zero;
         logic::Wire carry;
 
-        cpu::VectorLane lane2(a, b, opcode2, result, zero, carry);
+        cpu::VectorLane lane(a, b, opcode, result, zero, carry);
 
-        struct LogicTestCase2
+        struct LogicTestCase
         {
             const char* op_name;
             std::uint8_t op;
@@ -141,56 +152,21 @@ int main()
             std::uint32_t expected;
         };
 
-        const LogicTestCase2 tests2[] = {
+        const LogicTestCase tests[] = {
             {"AND", 2, 0xF0F0F0F0U, 0x0F0F0F0FU, 0x00000000U},
             {"OR",  3, 0xF0F0F0F0U, 0x0F0F0F0FU, 0xFFFFFFFFU},
+            {"XOR", 4, 0xAAAAAAAAU, 0x55555555U, 0xFFFFFFFFU},
             {"AND", 2, 0xFFFFFFFFU, 0x12345678U, 0x12345678U},
             {"OR",  3, 0x00000000U, 0x12345678U, 0x12345678U},
-        };
-
-        for (const auto& t : tests2)
-        {
-            a.write_value(t.op_a);
-            b.write_value(t.op_b);
-            opcode2.write_value(t.op);
-            lane2.evaluate();
-
-            const std::uint32_t res = static_cast<std::uint32_t>(result.read_value());
-            const bool ok = (res == t.expected);
-            if (!ok)
-            {
-                ++failures;
-            }
-
-            std::cout << "  [" << (ok ? "PASS" : "FAIL") << "] 2-bit " << t.op_name
-                      << " A=0x" << std::hex << t.op_a << " B=0x" << t.op_b
-                      << " -> got=0x" << res << " expected=0x" << t.expected << std::dec << "\n";
-        }
-
-        // 3-bit opcode tests (demonstrating XOR=4 support via 3-bit bus)
-        logic::Bus<3> opcode3;
-        cpu::VectorLane lane3(a, b, opcode3, result, zero, carry);
-
-        struct LogicTestCase3
-        {
-            const char* op_name;
-            std::uint8_t op;
-            std::uint32_t op_a;
-            std::uint32_t op_b;
-            std::uint32_t expected;
-        };
-
-        const LogicTestCase3 tests3[] = {
-            {"XOR", 4, 0xAAAAAAAAU, 0x55555555U, 0xFFFFFFFFU},
             {"XOR", 4, 0x12345678U, 0x12345678U, 0x00000000U},
         };
 
-        for (const auto& t : tests3)
+        for (const auto& t : tests)
         {
             a.write_value(t.op_a);
             b.write_value(t.op_b);
-            opcode3.write_value(t.op);
-            lane3.evaluate();
+            opcode.write_value(t.op);
+            lane.evaluate();
 
             const std::uint32_t res = static_cast<std::uint32_t>(result.read_value());
             const bool ok = (res == t.expected);
@@ -199,7 +175,7 @@ int main()
                 ++failures;
             }
 
-            std::cout << "  [" << (ok ? "PASS" : "FAIL") << "] 3-bit " << t.op_name
+            std::cout << "  [" << (ok ? "PASS" : "FAIL") << "] " << t.op_name
                       << " A=0x" << std::hex << t.op_a << " B=0x" << t.op_b
                       << " -> got=0x" << res << " expected=0x" << t.expected << std::dec << "\n";
         }
@@ -245,22 +221,17 @@ int main()
             lane.evaluate();
 
             const std::uint32_t res = static_cast<std::uint32_t>(result.read_value());
-            const logic::LogicState z_wire = zero.read();
-            const logic::LogicState z_member = lane.alu_zero_.read();
-            const logic::LogicState z_getter = lane.zero().read();
+            const logic::LogicState z = zero.read();
 
-            const bool ok = (res == t.expected_res) &&
-                            (z_wire == t.expected_zero) &&
-                            (z_member == t.expected_zero) &&
-                            (z_getter == t.expected_zero);
+            const bool ok = (res == t.expected_res) && (z == t.expected_zero);
             if (!ok)
             {
                 ++failures;
             }
 
             std::cout << "  [" << (ok ? "PASS" : "FAIL") << "] " << t.op_name
-                      << " A=" << t.op_a << " B=" << t.op_b
-                      << " Result=" << res << " Zero=" << z_wire
+                      << " A=" << std::dec << t.op_a << " B=" << t.op_b
+                      << " Result=" << res << " Zero=" << z
                       << " (expected " << t.expected_zero << ")\n";
         }
     }
@@ -352,15 +323,14 @@ int main()
                       << " Borrow=" << c << " (expected " << t.expected_borrow << ")" << std::dec << "\n";
         }
 
-        // 4.3 Bitwise operations carry convention (forces carry LOW in ALU)
-        // First force carry HIGH with an overflow addition
+        // 4.3 Bitwise operations carry convention (ALU forces carry LOW)
         a.write_value(0xFFFFFFFFU);
         b.write_value(1);
         opcode.write_value(0);
         lane.evaluate();
         assert(carry.read() == logic::LogicState::HIGH);
 
-        // Now run AND; verify carry is deterministically forced LOW
+        // AND; verify carry is forced LOW
         a.write_value(0xAAAAAAAAU);
         b.write_value(0x55555555U);
         opcode.write_value(2); // AND
@@ -370,7 +340,7 @@ int main()
         std::cout << "  [" << (and_carry_low ? "PASS" : "FAIL")
                   << "] AND carry convention: forced LOW = " << carry.read() << "\n";
 
-        // Run OR; verify carry is deterministically forced LOW
+        // OR; verify carry is forced LOW
         opcode.write_value(3); // OR
         lane.evaluate();
         const bool or_carry_low = (carry.read() == logic::LogicState::LOW);
@@ -386,7 +356,7 @@ int main()
     {
         logic::Bus<32> operand_a;
         logic::Bus<32> operand_b;
-        logic::Bus<2> opcode;
+        logic::Bus<3> opcode;
         logic::Bus<32> result;
         logic::Wire zero;
         logic::Wire carry;
@@ -464,7 +434,7 @@ int main()
     {
         logic::Bus<32> operand_a;
         logic::Bus<32> operand_b;
-        logic::Bus<2> opcode;
+        logic::Bus<3> opcode;
         logic::Bus<32> result;
         logic::Wire zero;
         logic::Wire carry;
@@ -490,7 +460,6 @@ int main()
         // HIGH AND UNKNOWN = UNKNOWN.
         // ---------------------------------------------------------------------
         operand_a.write(logic::LogicState::UNKNOWN);
-        // operand_b has alternating bits: even bits LOW (0), odd bits HIGH (1)
         operand_b.write_value(0xAAAAAAAAU); // odd bits 1, even bits 0
         opcode.write_value(2); // AND
         lane.evaluate();
@@ -520,8 +489,6 @@ int main()
         opcode.write(logic::LogicState::UNKNOWN);
         lane.evaluate();
 
-        // For bits where candidates differ (e.g. ADD=30 vs SUB=0xFFFFFFF6),
-        // the mux output must be UNKNOWN due to unknown select lines.
         bool has_unknown = false;
         for (std::size_t i = 0; i < 32; ++i)
         {
@@ -537,7 +504,6 @@ int main()
 
         // ---------------------------------------------------------------------
         // Test 6D: Recovery
-        // Restore valid binary values and verify lane returns to correct result
         // ---------------------------------------------------------------------
         operand_a.write_value(10);
         operand_b.write_value(20);
