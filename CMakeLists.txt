@@ -581,3 +581,16 @@ target_link_libraries(test_vector_configuration_unit
 )
 
 add_test(NAME test_vector_configuration_unit COMMAND test_vector_configuration_unit)
+
+# VectorLane tests (vector_cpu execution)
+add_executable(test_vector_lane
+    tests/vector/test_vector_lane.cpp
+)
+
+target_link_libraries(test_vector_lane
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_vector_lane COMMAND test_vector_lane)
+
