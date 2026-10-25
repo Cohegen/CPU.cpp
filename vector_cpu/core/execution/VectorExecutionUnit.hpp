@@ -12,8 +12,8 @@ namespace cpu {
     class VectorExecutionUnit
     {
         static_assert(VLEN==num_lanes*lane_width,"Low" );
-        static_assert(num_lanes==4 );
-        static_assert(lane_width==32 );
+        static_assert(num_lanes==4,"Number of lanes should be 4" );
+        static_assert(lane_width==32,"The Width of each lane must be 32-bits" );
         public:
            VectorExecutionUnit(
             logic::Bus<VLEN>&vec_a,
