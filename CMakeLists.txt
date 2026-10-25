@@ -594,3 +594,15 @@ target_link_libraries(test_vector_lane
 
 add_test(NAME test_vector_lane COMMAND test_vector_lane)
 
+
+# VectorExecutionUnit tests (vector_cpu execution)
+add_executable(test_vector_execution_unit
+    tests/vector/test_vector_execution_unit.cpp
+)
+
+target_link_libraries(test_vector_execution_unit
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_vector_execution_unit COMMAND test_vector_execution_unit)

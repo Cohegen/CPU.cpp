@@ -62,7 +62,7 @@ namespace cpu {
                         const std::size_t dest_idx = lane*lane_width+bit;
 
                         result_vec_[dest_idx].write(
-                            lane_results_[lane][bit].read();
+                            lane_results_[lane][bit].read()
                         );
                     }
                 }
