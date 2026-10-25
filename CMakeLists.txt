@@ -582,6 +582,18 @@ target_link_libraries(test_vector_configuration_unit
 
 add_test(NAME test_vector_configuration_unit COMMAND test_vector_configuration_unit)
 
+# VectorLaneMaskUnit tests (vector_cpu configuration)
+add_executable(test_vector_lane_mask_unit
+    tests/vector/test_vector_lane_mask_unit.cpp
+)
+
+target_link_libraries(test_vector_lane_mask_unit
+    PRIVATE
+        logic::logic
+)
+
+add_test(NAME test_vector_lane_mask_unit COMMAND test_vector_lane_mask_unit)
+
 # VectorLane tests (vector_cpu execution)
 add_executable(test_vector_lane
     tests/vector/test_vector_lane.cpp

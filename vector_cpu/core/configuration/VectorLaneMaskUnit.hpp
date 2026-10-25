@@ -59,6 +59,26 @@ namespace cpu {
             }
         }
 
+        [[nodiscard]] const logic::Bus<8>& get_lane_index(std::size_t lane) const
+        {
+            return indices_.at(lane);
+        }
+
+        [[nodiscard]] const std::array<logic::Bus<8>, 4>& indices() const noexcept
+        {
+            return indices_;
+        }
+
+        [[nodiscard]] logic::LogicState get_equal_flag(std::size_t lane) const
+        {
+            return equal_flags_.at(lane).read();
+        }
+
+        [[nodiscard]] logic::LogicState get_greater_flag(std::size_t lane) const
+        {
+            return greater_flags_.at(lane).read();
+        }
+
     private:
         // Inputs
         logic::Bus<8>& vector_length_;
