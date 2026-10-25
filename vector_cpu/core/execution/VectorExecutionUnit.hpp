@@ -49,7 +49,7 @@ namespace cpu {
                 }
 
 
-                for(std::size_t idx{0};idx<4;++idx)
+                for(std::size_t idx{0};idx<num_lanes;++idx)
                 {
                     vector_lanes_[idx].evaluate();
                 }
