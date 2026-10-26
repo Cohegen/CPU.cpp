@@ -1,5 +1,5 @@
 /*
-An implementation of the vector masked writeback unit
+An implementation of the Vector Masked Writeback unit
 */
 
 #include <logic/signals/bus.hpp>
