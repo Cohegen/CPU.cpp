@@ -47,6 +47,7 @@ public:
     VectorRegisterFile(
         logic::Bus<AddressWidth>& read_addr1,
         logic::Bus<AddressWidth>& read_addr2,
+        logic::Bus<AddressWidth>& read_addr3,
         logic::Bus<AddressWidth>& write_addr,
         logic::Bus<DataWidth>& write_data,
         logic::Wire& write_enable,
@@ -54,6 +55,7 @@ public:
         logic::Wire& clock
     ) : read_addr1_(read_addr1),
         read_addr2_(read_addr2),
+        read_addr3_(read_addr3),
         write_addr_(write_addr),
         write_data_(write_data),
         write_enable_(write_enable),
@@ -64,26 +66,7 @@ public:
         init_internal_hardware();
     }
 
-    /// Overloaded constructor matching alternate argument order
-    VectorRegisterFile(
-        logic::Bus<AddressWidth>& read_addr1,
-        logic::Bus<AddressWidth>& read_addr2,
-        logic::Wire& write_enable,
-        logic::Wire& clock,
-        logic::Wire& reset,
-        logic::Bus<AddressWidth>& write_addr,
-        logic::Bus<DataWidth>& write_data
-    ) : read_addr1_(read_addr1),
-        read_addr2_(read_addr2),
-        write_addr_(write_addr),
-        write_data_(write_data),
-        write_enable_(write_enable),
-        reset_(reset),
-        clock_(clock),
-        write_decoder_(write_addr_, write_enable_, register_write_enables_)
-    {
-        init_internal_hardware();
-    }
+   
 
     void evaluate() noexcept override
     {
@@ -99,6 +82,7 @@ public:
         // 3. Evaluate read multiplexers
         read_mux1_->evaluate();
         read_mux2_->evaluate();
+        read_mux3_->evaluate();
     }
 
     // Access read-port outputs
@@ -120,6 +104,17 @@ public:
     [[nodiscard]] const logic::Bus<DataWidth>& read_data2() const noexcept
     {
         return read_data2_;
+    }
+
+    [[nodiscard]] logic::Bus<DataWidth>& read_data3()noexcept
+    {
+        return read_data3_;
+
+    }
+
+    [[nodiscard]] const logic::Bus<DataWidth>& read_data3() const noexcept
+    {
+        return read_data3_;
     }
 
     // Direct access to individual registers for verification/inspection
@@ -151,21 +146,9 @@ public:
 private:
     void init_internal_hardware()
     {
-        // 1. Initialize AND gates for register write enables:
-        //    WE_i = GlobalWE AND (WriteAddress == i)
-        we_and_gates_.reserve(NumRegisters);
-        for (std::size_t i = 0; i < NumRegisters; ++i)
-        {
-            we_and_gates_.push_back(
-                std::make_unique<logic::ANDGate>(
-                    decoded_lines_[i],
-                    write_enable_,
-                    register_write_enables_[i]
-                )
-            );
-        }
+        
 
-        // 2. Initialize NumRegisters VectorRegister instances with stable references
+        // Creating the vector registers
         registers_.reserve(NumRegisters);
         for (std::size_t i = 0; i < NumRegisters; ++i)
         {
@@ -179,7 +162,7 @@ private:
             );
         }
 
-        // 3. Connect all register output buses to both read multiplexer trees
+        //  Connecting  all register output buses to both read multiplexer trees
         std::vector<logic::Bus<DataWidth>*> reg_outputs;
         reg_outputs.reserve(NumRegisters);
         for (std::size_t i = 0; i < NumRegisters; ++i)
@@ -198,11 +181,17 @@ private:
             read_addr2_,
             read_data2_
         );
+        read_mux3_ = std::make_unique<logic::MuxTree<NumRegisters, DataWidth, AddressWidth>>(
+            reg_outputs,
+            read_addr2_,
+            read_data2_
+        );
     }
 
     // External input signals
     logic::Bus<AddressWidth>& read_addr1_;
     logic::Bus<AddressWidth>& read_addr2_;
+    logic::Bus<AddressWidth>& read_addr3_;
     logic::Bus<AddressWidth>& write_addr_;
     logic::Bus<DataWidth>& write_data_;
     logic::Wire& write_enable_;
@@ -223,10 +212,12 @@ private:
     // Read multiplexer trees
     std::unique_ptr<logic::MuxTree<NumRegisters, DataWidth, AddressWidth>> read_mux1_;
     std::unique_ptr<logic::MuxTree<NumRegisters, DataWidth, AddressWidth>> read_mux2_;
+    std::unique_ptr<logic::MuxTree<NumRegisters,DataWidth,AddressWidth>> read_mux3_;
 
     // Read output buses
     logic::Bus<DataWidth> read_data1_;
     logic::Bus<DataWidth> read_data2_;
+    logic::Bus<DataWidth> read_data3_;
 };
 
 } // namespace cpu
