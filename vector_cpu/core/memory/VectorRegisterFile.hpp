@@ -88,7 +88,20 @@ public:
         init_internal_hardware();
     }
 
-    void evaluate() noexcept override
+    void evaluate_read() noexcept
+    {
+        // evaluating read muxes
+        read_mux1_->evaluate();
+        read_mux2_->evaluate();
+        read_mux3_->evaluate();   
+    }
+
+    void evaluate_reads() noexcept
+    {
+        evaluate_read();
+    }
+
+    void evaluate_write() noexcept 
     {
         // 1. Evaluate write-address decoding with enable
         write_decoder_.evaluate();
@@ -98,11 +111,12 @@ public:
         {
             reg->evaluate();
         }
+    }
 
-        // 3. Evaluate read multiplexers
-        read_mux1_->evaluate();
-        read_mux2_->evaluate();
-        read_mux3_->evaluate();
+    void evaluate() noexcept override
+    {
+        evaluate_write();
+        evaluate_read();
     }
 
     // Access read-port outputs
