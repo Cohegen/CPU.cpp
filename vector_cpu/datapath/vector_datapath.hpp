@@ -93,7 +93,7 @@ namespace cpu {
             }
 
             // 1. Evaluate vector register file reads
-            vector_reg_file_.evaluate();
+            vector_reg_file_.evaluate_read();
 
             // 2. Evaluate vector execution unit
             vec_execution_unit_.evaluate();
@@ -136,7 +136,10 @@ namespace cpu {
             }
 
             // 7. Update register file with write inputs
-            vector_reg_file_.evaluate();
+            vector_reg_file_.evaluate_write();
+
+            // 8. Re-evaluate reads to reflect any newly committed register state
+            vector_reg_file_.evaluate_read();
         }
 
         // Control external write vs internal writeback mode
