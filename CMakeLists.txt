@@ -38,595 +38,80 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/vector_cpu/core"
 )
 
-add_executable(cpu_cpp
-    src/main.cpp
-)
-
-target_link_libraries(cpu_cpp
-    PRIVATE
-        logic::logic
-)
-
-add_executable(test_instruction
-    tests/test_instruction.cpp
-)
-
-target_link_libraries(test_instruction
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_instruction COMMAND test_instruction)
-
-add_executable(test_pc
-    tests/test_pc.cpp
-)
-
-target_link_libraries(test_pc
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_pc COMMAND test_pc)
-
-add_executable(test_instruction_memory
-    tests/test_instruction_memory.cpp
-)
-
-target_link_libraries(test_instruction_memory
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_instruction_memory COMMAND test_instruction_memory)
-
-add_executable(test_instruction_decoder
-    tests/test_instruction_decoder.cpp
-    src/InstructionDecoder.cpp
-)
-
-target_link_libraries(test_instruction_decoder
-    PRIVATE
-        logic::logic
-)
-
-add_executable(test_pc_imem_connection
-    tests/test_pc_imem_connection.cpp
-)
-
-target_link_libraries(test_pc_imem_connection
-    PRIVATE
-        logic::logic
-)
-
-add_executable(test_control_unit
-    tests/single_cycle/test_control_unit.cpp
-)
-
-target_link_libraries(test_control_unit
-    PRIVATE
-        logic::logic
-)
-
-add_executable(test_alu_interface
-    tests/test_alu_interface.cpp
-)
-
-target_link_libraries(test_alu_interface
-    PRIVATE
-        logic::logic
-)
-
-add_executable(test_alu_operand_mux
-    tests/test_alu_operand_mux.cpp
-)
-
-target_link_libraries(test_alu_operand_mux
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_alu_operand_mux COMMAND test_alu_operand_mux)
-
-add_executable(test_single_cycle_datapath
-    tests/single_cycle/test_single_cycle_datapath.cpp
-    src/InstructionDecoder.cpp
-)
-
-target_link_libraries(test_single_cycle_datapath
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_single_cycle_datapath COMMAND test_single_cycle_datapath)
-
-add_executable(test_data_memory
-    tests/test_data_memory.cpp
-)
-
-target_link_libraries(test_data_memory
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_data_memory COMMAND test_data_memory)
-
-add_executable(test_writeback_mux
-    tests/test_writeback_mux.cpp
-)
-
-target_link_libraries(test_writeback_mux
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_writeback_mux COMMAND test_writeback_mux)
-
-add_executable(test_multi_cycle_registers
-    tests/multi_cycle/test_multi_cycle_registers.cpp
-)
-
-target_link_libraries(test_multi_cycle_registers
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_multi_cycle_registers COMMAND test_multi_cycle_registers)
-
-add_executable(test_multi_cycle_muxes
-    tests/multi_cycle/test_multi_cycle_muxes.cpp
-)
-
-target_link_libraries(test_multi_cycle_muxes
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_multi_cycle_muxes COMMAND test_multi_cycle_muxes)
-
-add_executable(test_multi_cycle_datapath
-    tests/multi_cycle/test_multi_cycle_datapath.cpp
-    src/InstructionDecoder.cpp
-)
-
-target_link_libraries(test_multi_cycle_datapath
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_multi_cycle_datapath COMMAND test_multi_cycle_datapath)
-
-add_executable(test_fsm_control_unit
-    tests/multi_cycle/test_fsm_control_unit.cpp
-    src/InstructionDecoder.cpp
-)
-
-target_link_libraries(test_fsm_control_unit
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_fsm_control_unit COMMAND test_fsm_control_unit)
-
-add_executable(test_pipelined_registers
-    tests/pipelined/test_pipelined_registers.cpp
-)
-
-target_link_libraries(test_pipelined_registers
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_pipelined_registers COMMAND test_pipelined_registers)
-
-add_executable(test_pipelined_muxes
-    tests/pipelined/test_pipelined_muxes.cpp
-)
-
-target_link_libraries(test_pipelined_muxes
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_pipelined_muxes COMMAND test_pipelined_muxes)
-
-add_executable(test_pipelined_datapath
-    tests/pipelined/test_pipelined_datapath.cpp
-    src/InstructionDecoder.cpp
-)
-
-target_link_libraries(test_pipelined_datapath
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_pipelined_datapath COMMAND test_pipelined_datapath)
-
-add_executable(test_cpu_wrappers
-    tests/test_cpu_wrappers.cpp
-    src/InstructionDecoder.cpp
-)
-
-target_link_libraries(test_cpu_wrappers
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_cpu_wrappers COMMAND test_cpu_wrappers)
-
-add_executable(test_cache_line
-    tests/superscalar/test_cache_line.cpp
-)
-
-target_link_libraries(test_cache_line
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_cache_line COMMAND test_cache_line)
-
-add_executable(test_memory_refill_integration
-    tests/superscalar/test_memory_refill_integration.cpp
-)
-
-target_link_libraries(test_memory_refill_integration
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_memory_refill_integration COMMAND test_memory_refill_integration)
-
-add_executable(test_fetch_unit
-    tests/superscalar/test_fetch_unit.cpp
-)
-
-target_link_libraries(test_fetch_unit
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_fetch_unit COMMAND test_fetch_unit)
-
-add_executable(test_fetch_icache_integration
-    tests/superscalar/test_fetch_icache_integration.cpp
-)
-
-target_link_libraries(test_fetch_icache_integration
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_fetch_icache_integration COMMAND test_fetch_icache_integration)
-
-add_executable(FetchDecodeRegisterTests
-    tests/superscalar/FetchDecodeRegisterTests.cpp
-)
-
-target_link_libraries(FetchDecodeRegisterTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME FetchDecodeRegisterTests COMMAND FetchDecodeRegisterTests)
-
-add_executable(DecodeUnitTests
-    tests/superscalar/DecodeUnitTests.cpp
-)
-
-target_link_libraries(DecodeUnitTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME DecodeUnitTests COMMAND DecodeUnitTests)
-
-add_executable(RenameUnitTests
-    tests/superscalar/RenameUnitTests.cpp
-)
-
-target_link_libraries(RenameUnitTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME RenameUnitTests COMMAND RenameUnitTests)
-
-add_executable(DispatchUnitTests
-    tests/superscalar/DispatchUnitTests.cpp
-)
-
-target_link_libraries(DispatchUnitTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME DispatchUnitTests COMMAND DispatchUnitTests)
-
-add_executable(IssueROBTests
-    tests/superscalar/IssueROBTests.cpp
-)
-
-target_link_libraries(IssueROBTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME IssueROBTests COMMAND IssueROBTests)
-
-add_executable(IssueQueueTests
-    tests/superscalar/IssueQueueTests.cpp
-)
-
-target_link_libraries(IssueQueueTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME IssueQueueTests COMMAND IssueQueueTests)
-
-add_executable(ALUExecutionUnitTests
-    tests/superscalar/ALUExecutionUnitTests.cpp
-)
-
-target_link_libraries(ALUExecutionUnitTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME ALUExecutionUnitTests COMMAND ALUExecutionUnitTests)
-
-add_executable(IntegerExecutionPipelineTests
-    tests/superscalar/IntegerExecutionPipelineTests.cpp
-)
-
-target_link_libraries(IntegerExecutionPipelineTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME IntegerExecutionPipelineTests COMMAND IntegerExecutionPipelineTests)
-
-add_executable(BranchExecutionUnitTests
-    tests/superscalar/BranchExecutionUnitTests.cpp
-)
-
-target_link_libraries(BranchExecutionUnitTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME BranchExecutionUnitTests COMMAND BranchExecutionUnitTests)
-
-
-
-
-# Register Alias Table tests
-add_executable(test_register_alias_table
-    tests/superscalar/RegisterAliasTableTests.cpp
-)
-
-target_link_libraries(test_register_alias_table
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_register_alias_table COMMAND test_register_alias_table)
-
-# Physical Register Free List Recovery tests
-add_executable(PhysicalRegisterFreeListRecoveryTests
-    tests/superscalar/PhysicalRegisterFreeListRecoveryTests.cpp
-)
-
-target_link_libraries(PhysicalRegisterFreeListRecoveryTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME PhysicalRegisterFreeListRecoveryTests COMMAND PhysicalRegisterFreeListRecoveryTests)
-
-# Branch Recovery Unit tests
-add_executable(BranchRecoveryUnitTests
-    tests/superscalar/BranchRecoveryUnitTests.cpp
-)
-
-target_link_libraries(BranchRecoveryUnitTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME BranchRecoveryUnitTests COMMAND BranchRecoveryUnitTests)
-
-# Branch Prediction Unit tests
-add_executable(BranchPredictionUnitTests
-    tests/superscalar/BranchPredictionUnitTests.cpp
-)
-
-target_link_libraries(BranchPredictionUnitTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME BranchPredictionUnitTests COMMAND BranchPredictionUnitTests)
-
-# End-to-end branch misprediction integration tests
-add_executable(BranchMispredictionIntegrationTests
-    tests/superscalar/BranchMispredictionIntegrationTests.cpp
-)
-
-target_link_libraries(BranchMispredictionIntegrationTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME BranchMispredictionIntegrationTests COMMAND BranchMispredictionIntegrationTests)
-
-# In-order commit and architectural state retirement tests
-add_executable(CommitUnitTests
-    tests/superscalar/CommitUnitTests.cpp
-)
-
-target_link_libraries(CommitUnitTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME CommitUnitTests COMMAND CommitUnitTests)
-
-# Phase 2: Load/Store Queue & Memory Disambiguation tests
-add_executable(LSQMemoryTests
-    tests/superscalar/LSQMemoryTests.cpp
-)
-
-target_link_libraries(LSQMemoryTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME LSQMemoryTests COMMAND LSQMemoryTests)
-
-# Phase 3: Top-Level Superscalar Core Assembly tests
-add_executable(SuperScalarCPUTests
-    tests/superscalar/SuperScalarCPUTests.cpp
-)
-
-target_link_libraries(SuperScalarCPUTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME SuperScalarCPUTests COMMAND SuperScalarCPUTests)
-
-# Data Cache tests
-add_executable(DataCacheTests
-    tests/superscalar/DataCacheTests.cpp
-)
-
-target_link_libraries(DataCacheTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME DataCacheTests COMMAND DataCacheTests)
-
-# Phase 3: Superscalar Benchmark Suite
-add_executable(SuperScalarBenchmarkTests
-    tests/superscalar/SuperScalarBenchmarkTests.cpp
-)
-
-target_link_libraries(SuperScalarBenchmarkTests
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME SuperScalarBenchmarkTests COMMAND SuperScalarBenchmarkTests)
-
+# ------------------------------------------------------------------------------
+# Main Application
+# ------------------------------------------------------------------------------
+add_executable(cpu_cpp src/main.cpp)
+target_link_libraries(cpu_cpp PRIVATE logic::logic)
+
+# ------------------------------------------------------------------------------
+# Test Helper Function
+# ------------------------------------------------------------------------------
+function(add_cpu_test target source)
+    add_executable(${target} ${source} ${ARGN})
+    target_link_libraries(${target} PRIVATE logic::logic)
+    add_test(NAME ${target} COMMAND ${target})
+endfunction()
+
+# ------------------------------------------------------------------------------
+# Core / Single-Cycle / Multi-Cycle / Pipelined Tests
+# ------------------------------------------------------------------------------
+add_cpu_test(test_instruction                   tests/test_instruction.cpp)
+add_cpu_test(test_pc                            tests/test_pc.cpp)
+add_cpu_test(test_instruction_memory            tests/test_instruction_memory.cpp)
+add_cpu_test(test_instruction_decoder           tests/test_instruction_decoder.cpp src/InstructionDecoder.cpp)
+add_cpu_test(test_pc_imem_connection           tests/test_pc_imem_connection.cpp)
+add_cpu_test(test_control_unit                  tests/single_cycle/test_control_unit.cpp)
+add_cpu_test(test_alu_interface                 tests/test_alu_interface.cpp)
+add_cpu_test(test_alu_operand_mux               tests/test_alu_operand_mux.cpp)
+add_cpu_test(test_single_cycle_datapath         tests/single_cycle/test_single_cycle_datapath.cpp src/InstructionDecoder.cpp)
+add_cpu_test(test_data_memory                   tests/test_data_memory.cpp)
+add_cpu_test(test_writeback_mux                 tests/test_writeback_mux.cpp)
+add_cpu_test(test_multi_cycle_registers         tests/multi_cycle/test_multi_cycle_registers.cpp)
+add_cpu_test(test_multi_cycle_muxes             tests/multi_cycle/test_multi_cycle_muxes.cpp)
+add_cpu_test(test_multi_cycle_datapath          tests/multi_cycle/test_multi_cycle_datapath.cpp src/InstructionDecoder.cpp)
+add_cpu_test(test_fsm_control_unit              tests/multi_cycle/test_fsm_control_unit.cpp src/InstructionDecoder.cpp)
+add_cpu_test(test_pipelined_registers           tests/pipelined/test_pipelined_registers.cpp)
+add_cpu_test(test_pipelined_muxes               tests/pipelined/test_pipelined_muxes.cpp)
+add_cpu_test(test_pipelined_datapath            tests/pipelined/test_pipelined_datapath.cpp src/InstructionDecoder.cpp)
+add_cpu_test(test_cpu_wrappers                  tests/test_cpu_wrappers.cpp src/InstructionDecoder.cpp)
+
+# ------------------------------------------------------------------------------
+# Superscalar Core Tests
+# ------------------------------------------------------------------------------
+add_cpu_test(test_cache_line                    tests/superscalar/test_cache_line.cpp)
+add_cpu_test(test_memory_refill_integration     tests/superscalar/test_memory_refill_integration.cpp)
+add_cpu_test(test_fetch_unit                    tests/superscalar/test_fetch_unit.cpp)
+add_cpu_test(test_fetch_icache_integration      tests/superscalar/test_fetch_icache_integration.cpp)
+add_cpu_test(FetchDecodeRegisterTests           tests/superscalar/FetchDecodeRegisterTests.cpp)
+add_cpu_test(DecodeUnitTests                    tests/superscalar/DecodeUnitTests.cpp)
+add_cpu_test(RenameUnitTests                    tests/superscalar/RenameUnitTests.cpp)
+add_cpu_test(DispatchUnitTests                  tests/superscalar/DispatchUnitTests.cpp)
+add_cpu_test(IssueROBTests                      tests/superscalar/IssueROBTests.cpp)
+add_cpu_test(IssueQueueTests                    tests/superscalar/IssueQueueTests.cpp)
+add_cpu_test(ALUExecutionUnitTests              tests/superscalar/ALUExecutionUnitTests.cpp)
+add_cpu_test(IntegerExecutionPipelineTests      tests/superscalar/IntegerExecutionPipelineTests.cpp)
+add_cpu_test(BranchExecutionUnitTests           tests/superscalar/BranchExecutionUnitTests.cpp)
+add_cpu_test(test_register_alias_table          tests/superscalar/RegisterAliasTableTests.cpp)
+add_cpu_test(PhysicalRegisterFreeListRecoveryTests tests/superscalar/PhysicalRegisterFreeListRecoveryTests.cpp)
+add_cpu_test(BranchRecoveryUnitTests            tests/superscalar/BranchRecoveryUnitTests.cpp)
+add_cpu_test(BranchPredictionUnitTests          tests/superscalar/BranchPredictionUnitTests.cpp)
+add_cpu_test(BranchMispredictionIntegrationTests tests/superscalar/BranchMispredictionIntegrationTests.cpp)
+add_cpu_test(CommitUnitTests                    tests/superscalar/CommitUnitTests.cpp)
+add_cpu_test(LSQMemoryTests                     tests/superscalar/LSQMemoryTests.cpp)
+add_cpu_test(SuperScalarCPUTests                tests/superscalar/SuperScalarCPUTests.cpp)
+add_cpu_test(DataCacheTests                     tests/superscalar/DataCacheTests.cpp)
+add_cpu_test(SuperScalarBenchmarkTests          tests/superscalar/SuperScalarBenchmarkTests.cpp)
+
+# ------------------------------------------------------------------------------
 # Vector CPU Tests
-add_executable(test_vector_register
-    tests/vector/test_vector_register.cpp
-)
-
-target_link_libraries(test_vector_register
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_vector_register COMMAND test_vector_register)
-
-add_executable(test_vector_register_file
-    tests/vector/test_vector_register_file.cpp
-)
-
-target_link_libraries(test_vector_register_file
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_vector_register_file COMMAND test_vector_register_file)
-
-
-
-# MinimumUnit tests (vector_cpu configuration)
-add_executable(test_minimum_unit
-    tests/vector/test_minimum_unit.cpp
-)
-
-target_link_libraries(test_minimum_unit
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_minimum_unit COMMAND test_minimum_unit)
-
-
-# VLMAXUnit tests (vector_cpu configuration)
-add_executable(test_vlmax_unit
-    tests/vector/test_vlmax_unit.cpp
-)
-
-target_link_libraries(test_vlmax_unit
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_vlmax_unit COMMAND test_vlmax_unit)
-
-# VectorConfigurationUnit tests (vector_cpu configuration)
-add_executable(test_vector_configuration_unit
-    tests/vector/test_vector_configuration_unit.cpp
-)
-
-target_link_libraries(test_vector_configuration_unit
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_vector_configuration_unit COMMAND test_vector_configuration_unit)
-
-# VectorLaneMaskUnit tests (vector_cpu configuration)
-add_executable(test_vector_lane_mask_unit
-    tests/vector/test_vector_lane_mask_unit.cpp
-)
-
-target_link_libraries(test_vector_lane_mask_unit
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_vector_lane_mask_unit COMMAND test_vector_lane_mask_unit)
-
-# VectorMaskedWBUnit tests (vector_cpu configuration)
-add_executable(test_vector_masked_wb_unit
-    tests/vector/test_vector_masked_wb_unit.cpp
-)
-
-target_link_libraries(test_vector_masked_wb_unit
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_vector_masked_wb_unit COMMAND test_vector_masked_wb_unit)
-
-# VectorLane tests (vector_cpu execution)
-add_executable(test_vector_lane
-    tests/vector/test_vector_lane.cpp
-)
-
-target_link_libraries(test_vector_lane
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_vector_lane COMMAND test_vector_lane)
-
-
-# VectorExecutionUnit tests (vector_cpu execution)
-add_executable(test_vector_execution_unit
-    tests/vector/test_vector_execution_unit.cpp
-)
-
-target_link_libraries(test_vector_execution_unit
-    PRIVATE
-        logic::logic
-)
-
-add_test(NAME test_vector_execution_unit COMMAND test_vector_execution_unit)
+# ------------------------------------------------------------------------------
+add_cpu_test(test_vector_register               tests/vector/test_vector_register.cpp)
+add_cpu_test(test_vector_register_file          tests/vector/test_vector_register_file.cpp)
+add_cpu_test(test_minimum_unit                  tests/vector/test_minimum_unit.cpp)
+add_cpu_test(test_vlmax_unit                    tests/vector/test_vlmax_unit.cpp)
+add_cpu_test(test_vector_configuration_unit     tests/vector/test_vector_configuration_unit.cpp)
+add_cpu_test(test_vector_lane_mask_unit         tests/vector/test_vector_lane_mask_unit.cpp)
+add_cpu_test(test_vector_masked_wb_unit         tests/vector/test_vector_masked_wb_unit.cpp)
+add_cpu_test(test_vector_lane                   tests/vector/test_vector_lane.cpp)
+add_cpu_test(test_vector_execution_unit         tests/vector/test_vector_execution_unit.cpp)
