@@ -595,14 +595,645 @@ void test_7_reset_behavior()
     std::cout << "  [PASS] Test 7 passed successfully!\n\n";
 }
 
+// =============================================================================
+// PRIMARY TEST: The First Complete Instruction (VADD V3, V1, V2 with VL = 2)
+// =============================================================================
+void test_first_complete_instruction()
+{
+    std::cout << "====================================================\n";
+    std::cout << "PRIMARY TEST: First Complete Instruction\n";
+    std::cout << "Instruction: VADD V3, V1, V2 with VL = 2\n";
+    std::cout << "====================================================\n";
+
+    logic::Bus<5> rs1, rs2, rd, write_addr;
+    logic::Bus<128> write_data, result;
+    logic::Bus<3> opcode;
+    logic::Bus<8> vl;
+    logic::Wire clock(logic::LogicState::LOW);
+    logic::Wire enable(logic::LogicState::LOW);
+    logic::Wire reset(logic::LogicState::LOW);
+
+    cpu::VectorDatapath dp(rs1, rs2, rd, write_data, write_addr, opcode, vl, clock, enable, reset, result);
+
+    // Initial state:
+    // V1 = [10, 20, 30, 40]
+    // V2 = [ 1,  2,  3,  4]
+    // V3 = [100, 200, 300, 400]
+    dp.initialize_register(1, { 10,  20,  30,  40});
+    dp.initialize_register(2, {  1,   2,   3,   4});
+    dp.initialize_register(3, {100, 200, 300, 400});
+
+    std::cout << "Initial state:\n";
+    print_vec("V1", cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output()));
+    print_vec("V2", cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output()));
+    print_vec("V3", cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output()));
+
+    // Setup Instruction: VADD V3, V1, V2
+    rs1.write_value(1);
+    rs2.write_value(2);
+    rd.write_value(3);
+    opcode.write_value(0); // ALU ADD = 000
+    vl.write_value(2);
+
+    // Drive enable HIGH for execution and keep clock LOW before active edge
+    enable.write(logic::LogicState::HIGH);
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    // -------------------------------------------------------------
+    // Before the clock edge
+    // Expected:
+    //   writeback_result = [11, 22, 300, 400]
+    //   V3 = [100, 200, 300, 400]
+    // -------------------------------------------------------------
+    auto wb_before = cpu::VectorDatapath::read_vector(dp.writeback_result());
+    auto v3_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    auto v1_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    std::cout << "\nBefore the clock edge:\n";
+    print_vec("writeback_result", wb_before);
+    print_vec("V3", v3_before);
+    print_vec("V1", v1_before);
+    print_vec("V2", v2_before);
+
+    assert(wb_before == (std::array<std::uint32_t, 4>{11, 22, 300, 400}));
+    assert(v3_before == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+    assert(v1_before == (std::array<std::uint32_t, 4>{10, 20, 30, 40}));
+    assert(v2_before == (std::array<std::uint32_t, 4>{ 1,  2,  3,  4}));
+    std::cout << "  [CONFIRMED] Before clock edge: writeback_result=[11, 22, 300, 400], V3=[100, 200, 300, 400]\n";
+
+    // -------------------------------------------------------------
+    // After the active clock edge
+    // Expected:
+    //   V3 = [11, 22, 300, 400]
+    //   Also verify that V1 and V2 remain unchanged.
+    // -------------------------------------------------------------
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+
+    auto v3_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    auto v1_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    std::cout << "\nAfter the active clock edge:\n";
+    print_vec("V3", v3_after);
+    print_vec("V1", v1_after);
+    print_vec("V2", v2_after);
+
+    assert(v3_after == (std::array<std::uint32_t, 4>{11, 22, 300, 400}));
+    assert(v1_after == (std::array<std::uint32_t, 4>{10, 20, 30, 40}));
+    assert(v2_after == (std::array<std::uint32_t, 4>{ 1,  2,  3,  4}));
+    std::cout << "  [CONFIRMED] After active clock edge: V3=[11, 22, 300, 400], V1 and V2 unchanged.\n";
+
+    // Complete clock cycle
+    clock.write(logic::LogicState::LOW);
+    enable.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto v3_final = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    assert(v3_final == (std::array<std::uint32_t, 4>{11, 22, 300, 400}));
+
+    std::cout << "  [PASS] Primary Test: First Complete Instruction passed successfully!\n\n";
+}
+
+// =============================================================================
+// ADDITIONAL TEST 1: VL = 0 (Destination remains unchanged)
+// =============================================================================
+void test_additional_vl_0()
+{
+    std::cout << "====================================================\n";
+    std::cout << "Additional Test: VL = 0 (Destination remains unchanged)\n";
+    std::cout << "====================================================\n";
+
+    logic::Bus<5> rs1, rs2, rd, write_addr;
+    logic::Bus<128> write_data, result;
+    logic::Bus<3> opcode;
+    logic::Bus<8> vl;
+    logic::Wire clock(logic::LogicState::LOW);
+    logic::Wire enable(logic::LogicState::LOW);
+    logic::Wire reset(logic::LogicState::LOW);
+
+    cpu::VectorDatapath dp(rs1, rs2, rd, write_data, write_addr, opcode, vl, clock, enable, reset, result);
+
+    dp.initialize_register(1, { 10,  20,  30,  40});
+    dp.initialize_register(2, {  1,   2,   3,   4});
+    dp.initialize_register(3, {100, 200, 300, 400});
+
+    rs1.write_value(1);
+    rs2.write_value(2);
+    rd.write_value(3);
+    opcode.write_value(0); // ADD
+    vl.write_value(0);     // VL = 0
+
+    enable.write(logic::LogicState::HIGH);
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto mask_before = cpu::VectorDatapath::read_mask(dp.lane_mask());
+    auto wb_before = cpu::VectorDatapath::read_vector(dp.writeback_result());
+    auto v3_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+
+    print_mask("lane_mask", mask_before);
+    print_vec("writeback_result", wb_before);
+    print_vec("V3 before clock edge", v3_before);
+
+    assert(mask_before == (std::array<std::uint8_t, 4>{0, 0, 0, 0}));
+    assert(wb_before == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+    assert(v3_before == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+
+    // Active clock edge
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+
+    auto v3_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    auto v1_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    print_vec("V3 after active edge", v3_after);
+    assert(v3_after == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+    assert(v1_after == (std::array<std::uint32_t, 4>{10, 20, 30, 40}));
+    assert(v2_after == (std::array<std::uint32_t, 4>{ 1,  2,  3,  4}));
+
+    clock.write(logic::LogicState::LOW);
+    enable.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    std::cout << "  [CONFIRMED] Destination V3 remained completely unchanged with VL = 0.\n";
+    std::cout << "  [PASS] Additional Test VL = 0 passed successfully!\n\n";
+}
+
+// =============================================================================
+// ADDITIONAL TEST 2: VL = 4 (All four lanes updated)
+// =============================================================================
+void test_additional_vl_4()
+{
+    std::cout << "====================================================\n";
+    std::cout << "Additional Test: VL = 4 (All four lanes updated)\n";
+    std::cout << "====================================================\n";
+
+    logic::Bus<5> rs1, rs2, rd, write_addr;
+    logic::Bus<128> write_data, result;
+    logic::Bus<3> opcode;
+    logic::Bus<8> vl;
+    logic::Wire clock(logic::LogicState::LOW);
+    logic::Wire enable(logic::LogicState::LOW);
+    logic::Wire reset(logic::LogicState::LOW);
+
+    cpu::VectorDatapath dp(rs1, rs2, rd, write_data, write_addr, opcode, vl, clock, enable, reset, result);
+
+    dp.initialize_register(1, { 10,  20,  30,  40});
+    dp.initialize_register(2, {  1,   2,   3,   4});
+    dp.initialize_register(3, {100, 200, 300, 400});
+
+    rs1.write_value(1);
+    rs2.write_value(2);
+    rd.write_value(3);
+    opcode.write_value(0); // ADD
+    vl.write_value(4);     // VL = 4
+
+    enable.write(logic::LogicState::HIGH);
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto mask_before = cpu::VectorDatapath::read_mask(dp.lane_mask());
+    auto wb_before = cpu::VectorDatapath::read_vector(dp.writeback_result());
+    auto v3_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+
+    print_mask("lane_mask", mask_before);
+    print_vec("writeback_result", wb_before);
+    print_vec("V3 before clock edge", v3_before);
+
+    assert(mask_before == (std::array<std::uint8_t, 4>{1, 1, 1, 1}));
+    assert(wb_before == (std::array<std::uint32_t, 4>{11, 22, 33, 44}));
+    assert(v3_before == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+
+    // Active clock edge
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+
+    auto v3_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    auto v1_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    print_vec("V3 after active edge", v3_after);
+    assert(v3_after == (std::array<std::uint32_t, 4>{11, 22, 33, 44}));
+    assert(v1_after == (std::array<std::uint32_t, 4>{10, 20, 30, 40}));
+    assert(v2_after == (std::array<std::uint32_t, 4>{ 1,  2,  3,  4}));
+
+    clock.write(logic::LogicState::LOW);
+    enable.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    std::cout << "  [CONFIRMED] All four lanes successfully updated with VL = 4.\n";
+    std::cout << "  [PASS] Additional Test VL = 4 passed successfully!\n\n";
+}
+
+// =============================================================================
+// ADDITIONAL TEST 3: enable = LOW (No register modification)
+// =============================================================================
+void test_additional_enable_low()
+{
+    std::cout << "====================================================\n";
+    std::cout << "Additional Test: enable = LOW (No register modification)\n";
+    std::cout << "====================================================\n";
+
+    logic::Bus<5> rs1, rs2, rd, write_addr;
+    logic::Bus<128> write_data, result;
+    logic::Bus<3> opcode;
+    logic::Bus<8> vl;
+    logic::Wire clock(logic::LogicState::LOW);
+    logic::Wire enable(logic::LogicState::LOW);
+    logic::Wire reset(logic::LogicState::LOW);
+
+    cpu::VectorDatapath dp(rs1, rs2, rd, write_data, write_addr, opcode, vl, clock, enable, reset, result);
+
+    dp.initialize_register(1, { 10,  20,  30,  40});
+    dp.initialize_register(2, {  1,   2,   3,   4});
+    dp.initialize_register(3, {100, 200, 300, 400});
+
+    rs1.write_value(1);
+    rs2.write_value(2);
+    rd.write_value(3);
+    opcode.write_value(0); // ADD
+    vl.write_value(4);
+
+    // Write disabled
+    enable.write(logic::LogicState::LOW);
+
+    // Clock LOW
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto v3_low = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    assert(v3_low == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+
+    // Active edge while enable is LOW
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+
+    auto v3_high = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    print_vec("V3 during clock HIGH (enable=LOW)", v3_high);
+    assert(v3_high == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+
+    // Clock LOW
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto v3_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    auto v1_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    assert(v3_after == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+    assert(v1_after == (std::array<std::uint32_t, 4>{10, 20, 30, 40}));
+    assert(v2_after == (std::array<std::uint32_t, 4>{ 1,  2,  3,  4}));
+
+    std::cout << "  [CONFIRMED] Registers remain unmodified when enable is LOW.\n";
+    std::cout << "  [PASS] Additional Test enable = LOW passed successfully!\n\n";
+}
+
+// =============================================================================
+// ADDITIONAL TEST 4: enable = HIGH (Write occurs on the active edge)
+// =============================================================================
+void test_additional_enable_high()
+{
+    std::cout << "====================================================\n";
+    std::cout << "Additional Test: enable = HIGH (Write occurs on active edge)\n";
+    std::cout << "====================================================\n";
+
+    logic::Bus<5> rs1, rs2, rd, write_addr;
+    logic::Bus<128> write_data, result;
+    logic::Bus<3> opcode;
+    logic::Bus<8> vl;
+    logic::Wire clock(logic::LogicState::LOW);
+    logic::Wire enable(logic::LogicState::LOW);
+    logic::Wire reset(logic::LogicState::LOW);
+
+    cpu::VectorDatapath dp(rs1, rs2, rd, write_data, write_addr, opcode, vl, clock, enable, reset, result);
+
+    dp.initialize_register(1, { 10,  20,  30,  40});
+    dp.initialize_register(2, {  1,   2,   3,   4});
+    dp.initialize_register(3, {100, 200, 300, 400});
+
+    rs1.write_value(1);
+    rs2.write_value(2);
+    rd.write_value(3);
+    opcode.write_value(0); // ADD
+    vl.write_value(2);
+
+    enable.write(logic::LogicState::HIGH);
+
+    // 1. Clock LOW: enable is HIGH, but write must not occur before active edge
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto v3_clock_low = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    print_vec("V3 during clock LOW", v3_clock_low);
+    assert(v3_clock_low == (std::array<std::uint32_t, 4>{100, 200, 300, 400}));
+
+    // 2. Clock HIGH (active edge): write commits now
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+
+    auto v3_clock_high = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    print_vec("V3 on clock HIGH (active edge)", v3_clock_high);
+    assert(v3_clock_high == (std::array<std::uint32_t, 4>{11, 22, 300, 400}));
+
+    // 3. Clock LOW: state holds
+    clock.write(logic::LogicState::LOW);
+    enable.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto v3_hold = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    assert(v3_hold == (std::array<std::uint32_t, 4>{11, 22, 300, 400}));
+
+    std::cout << "  [CONFIRMED] Write occurred precisely on the active edge when enable was HIGH.\n";
+    std::cout << "  [PASS] Additional Test enable = HIGH passed successfully!\n\n";
+}
+
+// =============================================================================
+// ADDITIONAL TEST 5: rd = rs1 (Correct in-place vector operation)
+// =============================================================================
+void test_additional_rd_equals_rs1()
+{
+    std::cout << "====================================================\n";
+    std::cout << "Additional Test: rd = rs1 (Correct in-place vector operation)\n";
+    std::cout << "====================================================\n";
+
+    logic::Bus<5> rs1, rs2, rd, write_addr;
+    logic::Bus<128> write_data, result;
+    logic::Bus<3> opcode;
+    logic::Bus<8> vl;
+    logic::Wire clock(logic::LogicState::LOW);
+    logic::Wire enable(logic::LogicState::LOW);
+    logic::Wire reset(logic::LogicState::LOW);
+
+    cpu::VectorDatapath dp(rs1, rs2, rd, write_data, write_addr, opcode, vl, clock, enable, reset, result);
+
+    // Initial state:
+    // V1 = [10, 20, 30, 40]
+    // V2 = [ 1,  2,  3,  4]
+    dp.initialize_register(1, {10, 20, 30, 40});
+    dp.initialize_register(2, { 1,  2,  3,  4});
+
+    // In-place vector operation: VADD V1, V1, V2 with VL = 2
+    // rd = 1, rs1 = 1, rs2 = 2
+    rs1.write_value(1);
+    rs2.write_value(2);
+    rd.write_value(1);
+    opcode.write_value(0); // ADD
+    vl.write_value(2);
+
+    enable.write(logic::LogicState::HIGH);
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    // Before active edge:
+    auto wb_before = cpu::VectorDatapath::read_vector(dp.writeback_result());
+    auto v1_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    std::cout << "Before active edge:\n";
+    print_vec("writeback_result", wb_before);
+    print_vec("V1", v1_before);
+    print_vec("V2", v2_before);
+
+    assert(wb_before == (std::array<std::uint32_t, 4>{11, 22, 30, 40}));
+    assert(v1_before == (std::array<std::uint32_t, 4>{10, 20, 30, 40}));
+    assert(v2_before == (std::array<std::uint32_t, 4>{ 1,  2,  3,  4}));
+
+    // Active clock edge:
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+
+    auto v1_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    std::cout << "After active edge:\n";
+    print_vec("V1 (updated in-place)", v1_after);
+    print_vec("V2 (unchanged)", v2_after);
+
+    assert(v1_after == (std::array<std::uint32_t, 4>{11, 22, 30, 40}));
+    assert(v2_after == (std::array<std::uint32_t, 4>{ 1,  2,  3,  4}));
+
+    // Complete cycle
+    clock.write(logic::LogicState::LOW);
+    enable.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    std::cout << "  [CONFIRMED] In-place vector operation rd = rs1 handled correctly.\n";
+    std::cout << "  [PASS] Additional Test rd = rs1 passed successfully!\n\n";
+}
+
+// =============================================================================
+// ADDITIONAL TEST 6: rd = rs2 (Correct in-place vector operation)
+// =============================================================================
+void test_additional_rd_equals_rs2()
+{
+    std::cout << "====================================================\n";
+    std::cout << "Additional Test: rd = rs2 (Correct in-place vector operation)\n";
+    std::cout << "====================================================\n";
+
+    logic::Bus<5> rs1, rs2, rd, write_addr;
+    logic::Bus<128> write_data, result;
+    logic::Bus<3> opcode;
+    logic::Bus<8> vl;
+    logic::Wire clock(logic::LogicState::LOW);
+    logic::Wire enable(logic::LogicState::LOW);
+    logic::Wire reset(logic::LogicState::LOW);
+
+    cpu::VectorDatapath dp(rs1, rs2, rd, write_data, write_addr, opcode, vl, clock, enable, reset, result);
+
+    // Initial state:
+    // V1 = [10, 20, 30, 40]
+    // V2 = [ 1,  2,  3,  4]
+    dp.initialize_register(1, {10, 20, 30, 40});
+    dp.initialize_register(2, { 1,  2,  3,  4});
+
+    // In-place vector operation: VADD V2, V1, V2 with VL = 2
+    // rd = 2, rs1 = 1, rs2 = 2
+    rs1.write_value(1);
+    rs2.write_value(2);
+    rd.write_value(2);
+    opcode.write_value(0); // ADD
+    vl.write_value(2);
+
+    enable.write(logic::LogicState::HIGH);
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    // Before active edge:
+    auto wb_before = cpu::VectorDatapath::read_vector(dp.writeback_result());
+    auto v1_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    std::cout << "Before active edge:\n";
+    print_vec("writeback_result", wb_before);
+    print_vec("V1", v1_before);
+    print_vec("V2", v2_before);
+
+    assert(wb_before == (std::array<std::uint32_t, 4>{11, 22, 3, 4}));
+    assert(v1_before == (std::array<std::uint32_t, 4>{10, 20, 30, 40}));
+    assert(v2_before == (std::array<std::uint32_t, 4>{ 1,  2,  3,  4}));
+
+    // Active clock edge:
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+
+    auto v1_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(1).output());
+    auto v2_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(2).output());
+
+    std::cout << "After active edge:\n";
+    print_vec("V1 (unchanged)", v1_after);
+    print_vec("V2 (updated in-place)", v2_after);
+
+    assert(v1_after == (std::array<std::uint32_t, 4>{10, 20, 30, 40}));
+    assert(v2_after == (std::array<std::uint32_t, 4>{11, 22, 3, 4}));
+
+    // Complete cycle
+    clock.write(logic::LogicState::LOW);
+    enable.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    std::cout << "  [CONFIRMED] In-place vector operation rd = rs2 handled correctly.\n";
+    std::cout << "  [PASS] Additional Test rd = rs2 passed successfully!\n\n";
+}
+
+// =============================================================================
+// ADDITIONAL TEST 7: Consecutive instructions (Register Dependencies)
+// =============================================================================
+void test_additional_consecutive_instructions()
+{
+    std::cout << "====================================================\n";
+    std::cout << "Additional Test: Consecutive Instructions (Register Dependencies)\n";
+    std::cout << "====================================================\n";
+
+    logic::Bus<5> rs1, rs2, rd, write_addr;
+    logic::Bus<128> write_data, result;
+    logic::Bus<3> opcode;
+    logic::Bus<8> vl;
+    logic::Wire clock(logic::LogicState::LOW);
+    logic::Wire enable(logic::LogicState::LOW);
+    logic::Wire reset(logic::LogicState::LOW);
+
+    cpu::VectorDatapath dp(rs1, rs2, rd, write_data, write_addr, opcode, vl, clock, enable, reset, result);
+
+    // Initial state:
+    // V1 = [10, 20, 30, 40]
+    // V2 = [ 1,  2,  3,  4]
+    // V3 = [100, 200, 300, 400]
+    // V4 = [  0,   0,   0,   0]
+    dp.initialize_register(1, { 10,  20,  30,  40});
+    dp.initialize_register(2, {  1,   2,   3,   4});
+    dp.initialize_register(3, {100, 200, 300, 400});
+    dp.initialize_register(4, {  0,   0,   0,   0});
+
+    // -------------------------------------------------------------
+    // Instruction 1: VADD V3, V1, V2 with VL = 2
+    // V1 = [10, 20, 30, 40]
+    // V2 = [ 1,  2,  3,  4]
+    // Expected to commit V3 = [11, 22, 300, 400]
+    // -------------------------------------------------------------
+    std::cout << "  --- Instruction 1: VADD V3, V1, V2 (VL = 2) ---\n";
+    rs1.write_value(1);
+    rs2.write_value(2);
+    rd.write_value(3);
+    opcode.write_value(0); // ADD
+    vl.write_value(2);
+    enable.write(logic::LogicState::HIGH);
+
+    // Step through clock cycle: LOW -> HIGH -> LOW
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto v3_committed = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    print_vec("Committed V3", v3_committed);
+    assert(v3_committed == (std::array<std::uint32_t, 4>{11, 22, 300, 400}));
+
+    // -------------------------------------------------------------
+    // Instruction 2: VADD V4, V3, V2 with VL = 4
+    // Dependent on Instruction 1's committed destination V3:
+    // rs1 = 3 (V3 = [11, 22, 300, 400])
+    // rs2 = 2 (V2 = [ 1,  2,   3,   4])
+    // rd  = 4 (V4 = [ 0,  0,   0,   0])
+    // Expected V4 = [12, 24, 303, 404]
+    // -------------------------------------------------------------
+    std::cout << "  --- Instruction 2: VADD V4, V3, V2 (VL = 4) [Depends on V3] ---\n";
+    rs1.write_value(3); // rs1 is V3
+    rs2.write_value(2); // rs2 is V2
+    rd.write_value(4);  // rd is V4
+    opcode.write_value(0); // ADD
+    vl.write_value(4);
+    enable.write(logic::LogicState::HIGH);
+
+    // Before active clock edge of Instruction 2:
+    clock.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    auto instr2_rd1 = cpu::VectorDatapath::read_vector(dp.read_data1());
+    auto instr2_rd2 = cpu::VectorDatapath::read_vector(dp.read_data2());
+    auto instr2_wb = cpu::VectorDatapath::read_vector(dp.writeback_result());
+    auto v4_before = cpu::VectorDatapath::read_vector(dp.register_file().get_register(4).output());
+
+    std::cout << "  Instruction 2 before active clock edge:\n";
+    print_vec("read_data1 (reads V3)", instr2_rd1);
+    print_vec("read_data2 (reads V2)", instr2_rd2);
+    print_vec("writeback_result", instr2_wb);
+    print_vec("V4 before edge", v4_before);
+
+    // Verify Instruction 2 sees Instruction 1's committed result
+    assert(instr2_rd1 == (std::array<std::uint32_t, 4>{11, 22, 300, 400}));
+    assert(instr2_rd2 == (std::array<std::uint32_t, 4>{ 1,  2,   3,   4}));
+    assert(instr2_wb == (std::array<std::uint32_t, 4>{12, 24, 303, 404}));
+    assert(v4_before == (std::array<std::uint32_t, 4>{ 0,  0,   0,   0}));
+
+    // Active clock edge of Instruction 2:
+    clock.write(logic::LogicState::HIGH);
+    dp.evaluate();
+
+    auto v4_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(4).output());
+    auto v3_after = cpu::VectorDatapath::read_vector(dp.register_file().get_register(3).output());
+    std::cout << "  Instruction 2 after active clock edge:\n";
+    print_vec("V4 (committed result)", v4_after);
+    print_vec("V3 (remains unchanged)", v3_after);
+
+    assert(v4_after == (std::array<std::uint32_t, 4>{12, 24, 303, 404}));
+    assert(v3_after == (std::array<std::uint32_t, 4>{11, 22, 300, 400}));
+
+    // Complete cycle
+    clock.write(logic::LogicState::LOW);
+    enable.write(logic::LogicState::LOW);
+    dp.evaluate();
+
+    std::cout << "  [CONFIRMED] Second instruction sees the first instruction's committed result.\n";
+    std::cout << "  [PASS] Additional Test Consecutive Instructions passed successfully!\n\n";
+}
+
 } // namespace
 
 int main()
 {
     std::cout << "****************************************************\n";
-    std::cout << "Running VectorDatapath Tests (Tests 1 to 7)\n";
+    std::cout << "Running VectorDatapath Full Test Suite\n";
     std::cout << "****************************************************\n\n";
 
+    // 1. Primary Test Requested
+    test_first_complete_instruction();
+
+    // 2. Additional Tests Requested
+    test_additional_vl_0();
+    test_additional_vl_4();
+    test_additional_enable_low();
+    test_additional_enable_high();
+    test_additional_rd_equals_rs1();
+    test_additional_rd_equals_rs2();
+    test_additional_consecutive_instructions();
+
+    // 3. Regression / Coverage Tests
     test_1_basic_vector_addition();
     test_2_partial_vector_length();
     test_3_boundary_values_of_vl();
@@ -612,7 +1243,7 @@ int main()
     test_7_reset_behavior();
 
     std::cout << "****************************************************\n";
-    std::cout << "ALL TESTS 1–7 PASSED SUCCESSFULLY!\n";
+    std::cout << "ALL VECTOR DATAPATH TESTS PASSED SUCCESSFULLY!\n";
     std::cout << "****************************************************\n";
 
     return 0;
