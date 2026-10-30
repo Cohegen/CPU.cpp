@@ -70,3 +70,4 @@ add_cpu_test(test_vector_masked_wb_unit         vector/test_vector_masked_wb_uni
 add_cpu_test(test_vector_lane                   vector/test_vector_lane.cpp)
 add_cpu_test(test_vector_execution_unit         vector/test_vector_execution_unit.cpp)
 add_cpu_test(test_vector_datapath               vector/test_vector_datapath.cpp)
+add_cpu_test(test_vector_control_unit           vector/test_vector_control_unit.cpp)
